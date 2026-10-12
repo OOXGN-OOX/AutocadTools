@@ -1,0 +1,458 @@
+<!-- SPDX-License-Identifier: LicenseRef-AutocadTools-Proprietary-NC-Attribution; see LICENSE in the repository root. -->
+<!-- ========================================================================
+     OOXGN - Copyright (c) 2026. All rights reserved.
+     Author: OOXGN | Project: AutocadTools
+     ======================================================================== -->
+<!-- File: AutocadTools/Views/StampWindow.xaml -->
+<Window x:Class="AutocadTools.Views.StampWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:AutocadTools.ViewModels"
+        mc:Ignorable="d"
+        Title="Свойства штампа Autocad Tools"
+        Height="550" Width="1080"
+        Background="#1E1E1E"
+        WindowStyle="SingleBorderWindow"
+        ResizeMode="CanResize"
+        ShowInTaskbar="False"
+        Topmost="True">
+
+    <!-- Ресурсы стилей -->
+    <Window.Resources>
+        <!-- Стиль TextBox -->
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="2"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="CaretBrush" Value="White"/>
+            <Setter Property="Validation.ErrorTemplate" Value="{x:Null}"/>
+        </Style>
+
+        <!-- Границы ячеек -->
+        <Style TargetType="Border">
+            <Setter Property="BorderBrush" Value="#666"/>
+            <Setter Property="BorderThickness" Value="0.5"/>
+        </Style>
+
+        <!-- Подписи -->
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#555"/>
+            <Setter Property="FontSize" Value="8"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="Margin" Value="2,0,0,0"/>
+            <Setter Property="IsHitTestVisible" Value="False"/>
+        </Style>
+
+        <!-- Button Style -->
+        <Style TargetType="Button" x:Key="StampButton">
+            <Setter Property="Background" Value="#333337"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#434346"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#4E4E52"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#666666"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Primary Button Style -->
+        <Style TargetType="Button" x:Key="PrimaryButton" BasedOn="{StaticResource StampButton}">
+            <Setter Property="Background" Value="#555555"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="40"/>
+        </Grid.RowDefinitions>
+
+        <!-- Оборачиваем форму в Viewbox -->
+        <Viewbox Grid.Row="0" Stretch="Uniform">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="5"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- === ЗОНА 1: БОКОВИК === -->
+                <Grid Grid.Column="0" VerticalAlignment="Bottom" Width="46">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Взам. инв № -->
+                    <Border Grid.Row="1" Background="#2D2D30" BorderThickness="1" BorderBrush="#888" Height="95" Margin="0,0,0,-1">
+                        <Grid>
+                            <TextBlock Text="Взам. инв. №" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                <TextBlock.LayoutTransform>
+                                    <RotateTransform Angle="-90"/>
+                                </TextBlock.LayoutTransform>
+                            </TextBlock>
+                            <TextBox Text="{Binding FieldsMap[Взам.инв.№].Value, UpdateSourceTrigger=PropertyChanged}">
+                                <TextBox.LayoutTransform>
+                                    <RotateTransform Angle="-90"/>
+                                </TextBox.LayoutTransform>
+                            </TextBox>
+                        </Grid>
+                    </Border>
+
+                    <!-- Подп и дата -->
+                    <Border Grid.Row="2" Background="#2D2D30" BorderThickness="1" BorderBrush="#888" Height="133" Margin="0,0,0,-1">
+                        <Grid>
+                            <TextBlock Text="Подп. и дата" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                <TextBlock.LayoutTransform>
+                                    <RotateTransform Angle="-90"/>
+                                </TextBlock.LayoutTransform>
+                            </TextBlock>
+                            <TextBox Text="{Binding FieldsMap[Подп.и.дата].Value, UpdateSourceTrigger=PropertyChanged}">
+                                <TextBox.LayoutTransform>
+                                    <RotateTransform Angle="-90"/>
+                                </TextBox.LayoutTransform>
+                            </TextBox>
+                        </Grid>
+                    </Border>
+
+                    <!-- Инв № подл -->
+                    <Border Grid.Row="3" Background="#2D2D30" BorderThickness="1" BorderBrush="#888" Height="95">
+                        <Grid>
+                            <TextBlock Text="Инв. № подл." VerticalAlignment="Center" HorizontalAlignment="Right">
+                                <TextBlock.LayoutTransform>
+                                    <RotateTransform Angle="-90"/>
+                                </TextBlock.LayoutTransform>
+                            </TextBlock>
+                            <TextBox Text="{Binding FieldsMap[Инв.№].Value, UpdateSourceTrigger=PropertyChanged}">
+                                <TextBox.LayoutTransform>
+                                    <RotateTransform Angle="-90"/>
+                                </TextBox.LayoutTransform>
+                            </TextBox>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- === ЗОНА 2 и 3: ОСНОВНОЙ БЛОК === -->
+                <Border Grid.Column="2" BorderThickness="2" BorderBrush="#888" Background="#2D2D30" Width="703" Height="209" VerticalAlignment="Bottom">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="247*"/>
+                            <ColumnDefinition Width="456*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- ЛЕВЫЙ БЛОК -->
+                        <Grid Grid.Column="0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Изм 4 -->
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="38*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                    <ColumnDefinition Width="57*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0"><TextBox Text="{Binding FieldsMap[Изм.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="1"><TextBox Text="{Binding FieldsMap[Кол.уч.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="2"><TextBox Text="{Binding FieldsMap[Лист.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="3"><TextBox Text="{Binding FieldsMap[Nдок.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="4"><TextBox IsReadOnly="True" Background="#222"/></Border>
+                                <Border Grid.Column="5"><TextBox Text="{Binding FieldsMap[Дата.10].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                            </Grid>
+
+                            <!-- Изм 3 -->
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="38*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                    <ColumnDefinition Width="57*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0"><TextBox Text="{Binding FieldsMap[Изм.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="1"><TextBox Text="{Binding FieldsMap[Кол.уч.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="2"><TextBox Text="{Binding FieldsMap[Лист.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="3"><TextBox Text="{Binding FieldsMap[Nдок.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="4"><TextBox IsReadOnly="True" Background="#222"/></Border>
+                                <Border Grid.Column="5"><TextBox Text="{Binding FieldsMap[Дата.9].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                            </Grid>
+
+                            <!-- Изм 2 -->
+                            <Grid Grid.Row="2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="38*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                    <ColumnDefinition Width="57*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0"><TextBox Text="{Binding FieldsMap[Изм.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="1"><TextBox Text="{Binding FieldsMap[Кол.уч.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="2"><TextBox Text="{Binding FieldsMap[Лист.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="3"><TextBox Text="{Binding FieldsMap[Nдок.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="4"><TextBox IsReadOnly="True" Background="#222"/></Border>
+                                <Border Grid.Column="5"><TextBox Text="{Binding FieldsMap[Дата.8].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                            </Grid>
+
+                            <!-- Изм 1 -->
+                            <Grid Grid.Row="3">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="38*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                    <ColumnDefinition Width="57*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0"><TextBox Text="{Binding FieldsMap[Изм.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="1"><TextBox Text="{Binding FieldsMap[Кол.уч.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="2"><TextBox Text="{Binding FieldsMap[Лист.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="3"><TextBox Text="{Binding FieldsMap[Nдок.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="4"><TextBox IsReadOnly="True" Background="#222"/></Border>
+                                <Border Grid.Column="5"><TextBox Text="{Binding FieldsMap[Дата.7].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                            </Grid>
+
+                            <!-- Заголовки -->
+                            <Grid Grid.Row="4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="38*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                    <ColumnDefinition Width="57*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0"><TextBlock Text="Изм." HorizontalAlignment="Center"/></Border>
+                                <Border Grid.Column="1"><TextBlock Text="Кол." HorizontalAlignment="Center"/></Border>
+                                <Border Grid.Column="2"><TextBlock Text="Лист" HorizontalAlignment="Center"/></Border>
+                                <Border Grid.Column="3"><TextBlock Text="№док." HorizontalAlignment="Center"/></Border>
+                                <Border Grid.Column="4"><TextBlock Text="Подп." HorizontalAlignment="Center"/></Border>
+                                <Border Grid.Column="5"><TextBlock Text="Дата" HorizontalAlignment="Center"/></Border>
+                            </Grid>
+
+                            <!-- Подписанты Row 5-10 -->
+                            <Grid Grid.Row="5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="76*"/>
+                                    <ColumnDefinition Width="76*"/>
+                                    <ColumnDefinition Width="57*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0"><TextBox Text="{Binding FieldsMap[Должн.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="1"><TextBox Text="{Binding FieldsMap[Фам.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="2"><TextBox IsReadOnly="True" Background="#222"/></Border>
+                                <Border Grid.Column="3"><TextBox Text="{Binding FieldsMap[Дата.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                            </Grid>
+                            <Grid Grid.Row="6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="76*"/>
+                                    <ColumnDefinition Width="76*"/>
+                                    <ColumnDefinition Width="57*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0"><TextBox Text="{Binding FieldsMap[Должн.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="1"><TextBox Text="{Binding FieldsMap[Фам.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="2"><TextBox IsReadOnly="True" Background="#222"/></Border>
+                                <Border Grid.Column="3"><TextBox Text="{Binding FieldsMap[Дата.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                            </Grid>
+                            <Grid Grid.Row="7">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="76*"/>
+                                    <ColumnDefinition Width="76*"/>
+                                    <ColumnDefinition Width="57*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0"><TextBox Text="{Binding FieldsMap[Должн.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="1"><TextBox Text="{Binding FieldsMap[Фам.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="2"><TextBox IsReadOnly="True" Background="#222"/></Border>
+                                <Border Grid.Column="3"><TextBox Text="{Binding FieldsMap[Дата.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                            </Grid>
+                            <Grid Grid.Row="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="76*"/>
+                                    <ColumnDefinition Width="76*"/>
+                                    <ColumnDefinition Width="57*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0"><TextBox Text="{Binding FieldsMap[Должн.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="1"><TextBox Text="{Binding FieldsMap[Фам.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="2"><TextBox IsReadOnly="True" Background="#222"/></Border>
+                                <Border Grid.Column="3"><TextBox Text="{Binding FieldsMap[Дата.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                            </Grid>
+                            <Grid Grid.Row="9">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="76*"/>
+                                    <ColumnDefinition Width="76*"/>
+                                    <ColumnDefinition Width="57*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0"><TextBox Text="{Binding FieldsMap[Должн.5].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="1"><TextBox Text="{Binding FieldsMap[Фам.5].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="2"><TextBox IsReadOnly="True" Background="#222"/></Border>
+                                <Border Grid.Column="3"><TextBox Text="{Binding FieldsMap[Дата.5].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                            </Grid>
+                            <Grid Grid.Row="10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="76*"/>
+                                    <ColumnDefinition Width="76*"/>
+                                    <ColumnDefinition Width="57*"/>
+                                    <ColumnDefinition Width="38*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0"><TextBox Text="{Binding FieldsMap[Должн.6].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="1"><TextBox Text="{Binding FieldsMap[Фам.6].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Grid.Column="2"><TextBox IsReadOnly="True" Background="#222"/></Border>
+                                <Border Grid.Column="3"><TextBox Text="{Binding FieldsMap[Дата.6].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                            </Grid>
+                        </Grid>
+
+                        <!-- ПРАВЫЙ БЛОК -->
+                        <Grid Grid.Column="1">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="10*"/>
+                                <RowDefinition Height="15*"/>
+                                <RowDefinition Height="15*"/>
+                                <RowDefinition Height="15*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Обозначение -->
+                            <Border Grid.Row="0">
+                                <Grid>
+                                    <TextBlock Text="Обозначение документа"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition/>
+                                            <ColumnDefinition/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Grid.ColumnSpan="2" FontSize="14" FontWeight="Bold" MaxLength="128" Text="{Binding ОбозначениеДокумента, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+
+                            <!-- Проект -->
+                            <Border Grid.Row="1">
+                                <Grid>
+                                    <TextBlock Text="Наименование проекта"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition/>
+                                            <ColumnDefinition/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Grid.ColumnSpan="2" VerticalContentAlignment="Top" Padding="5" MaxLength="128" Text="{Binding НаименованиеОбъекта, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+
+                            <!-- Здание + Стадия -->
+                            <Grid Grid.Row="2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="266*"/>
+                                    <ColumnDefinition Width="57*"/>
+                                    <ColumnDefinition Width="57*"/>
+                                    <ColumnDefinition Width="76*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0">
+                                    <Grid>
+                                        <TextBlock Text="Наименование здания"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition/>
+                                                <ColumnDefinition/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox Grid.ColumnSpan="2" VerticalContentAlignment="Top" Padding="5" MaxLength="128" Text="{Binding НаименованиеУчастка, UpdateSourceTrigger=PropertyChanged}"/>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                                <Border Grid.Column="1">
+                                    <Grid>
+                                        <TextBlock Text="Стадия" HorizontalAlignment="Center"/>
+                                        <TextBox Margin="0,12,0,0" HorizontalContentAlignment="Center" Text="{Binding FieldsMap[Стадия].Value, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </Grid>
+                                </Border>
+                                <Border Grid.Column="2">
+                                    <Grid>
+                                        <TextBlock Text="Лист" HorizontalAlignment="Center"/>
+                                        <TextBox IsReadOnly="True" Text="auto" Margin="0,12,0,0" HorizontalContentAlignment="Center" Background="#222"/>
+                                    </Grid>
+                                </Border>
+                                <Border Grid.Column="3">
+                                    <Grid>
+                                        <TextBlock Text="Листов" HorizontalAlignment="Center"/>
+                                        <TextBox Margin="0,12,0,0" HorizontalContentAlignment="Center" Text="{Binding FieldsMap[Листов].Value, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+
+                            <!-- Наименование + Компания -->
+                            <Grid Grid.Row="3">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="266*"/>
+                                    <ColumnDefinition Width="190*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0">
+                                    <Grid>
+                                        <TextBlock Text="Наименование" VerticalAlignment="Top"/>
+                                        <TextBox IsReadOnly="True" Background="#222"/>
+                                    </Grid>
+                                </Border>
+                                <Border Grid.Column="1">
+                                    <Grid>
+                                        <TextBlock Text="Компания"/>
+                                        <TextBox FontSize="18" FontWeight="Bold" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Text="{Binding FieldsMap[Компания].Value, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Viewbox>
+
+        <!-- КНОПКИ -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,5,0,0">
+            <Button Content="Обновить из чертежа" Command="{Binding RefreshCommand}" Style="{StaticResource StampButton}" Margin="0,0,10,0"/>
+            <Button Content="Применить" Command="{Binding UpdateCommand}" Style="{StaticResource PrimaryButton}"/>
+        </StackPanel>
+    </Grid>
+</Window>

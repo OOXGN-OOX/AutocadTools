@@ -1,0 +1,57 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AutoCADVersion Condition="'$(AutoCADVersion)' == ''">2027</AutoCADVersion>
+    <TargetFramework Condition="'$(AutoCADVersion)' == '2027'">net10.0-windows</TargetFramework>
+    <TargetFramework Condition="'$(AutoCADVersion)' == '2025' Or '$(AutoCADVersion)' == '2026'">net8.0-windows</TargetFramework>
+    <AssemblyName>AutocadTools</AssemblyName>
+    <RootNamespace>AutocadTools</RootNamespace>
+    <Version>0.0.0</Version>
+    <Product>Autocad Tools</Product>
+    <Title>Autocad Tools</Title>
+    <Copyright>Copyright (c) 2026 OOXGN (GitHub: OOXGN-OOX). All rights reserved.</Copyright>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <AutoCADPath Condition="'$(AutoCADPath)' == ''">C:\Program Files\Autodesk\AutoCAD $(AutoCADVersion)</AutoCADPath>
+    <UseAutoCADNuGet Condition="'$(UseAutoCADNuGet)' == '' And !Exists('$(AutoCADPath)\acdbmgd.dll')">true</UseAutoCADNuGet>
+    <ExtensionsVersion Condition="'$(AutoCADVersion)' == '2027'">10.0.0</ExtensionsVersion>
+    <ExtensionsVersion Condition="'$(AutoCADVersion)' != '2027'">8.0.0</ExtensionsVersion>
+    <OutputPath>bin\$(Configuration)\AutoCAD$(AutoCADVersion)\</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="tests\**\*.cs" />
+    <Page Remove="tests\**\*.xaml" />
+    <PackageReference Include="itext7" Version="9.4.0" />
+    <PackageReference Include="itext.bouncy-castle-adapter" Version="9.4.0" />
+    <PackageReference Include="ClosedXML" Version="0.104.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="$(ExtensionsVersion)" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(ExtensionsVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="$(ExtensionsVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(ExtensionsVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="$(ExtensionsVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Primitives" Version="$(ExtensionsVersion)" />
+    <PackageReference Include="AutoCAD.NET" Version="25.0.1" Condition="'$(UseAutoCADNuGet)' == 'true' And '$(AutoCADVersion)' == '2025'" PrivateAssets="all" IncludeAssets="compile" />
+    <PackageReference Include="AutoCAD.NET" Version="25.1.0" Condition="'$(UseAutoCADNuGet)' == 'true' And '$(AutoCADVersion)' == '2026'" PrivateAssets="all" IncludeAssets="compile" />
+    <PackageReference Include="AutoCAD.NET" Version="26.0.0" Condition="'$(UseAutoCADNuGet)' == 'true' And '$(AutoCADVersion)' == '2027'" PrivateAssets="all" IncludeAssets="compile" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(UseAutoCADNuGet)' != 'true'">
+    <Reference Include="AcCoreMgd"><HintPath>$(AutoCADPath)\accoremgd.dll</HintPath><Private>False</Private></Reference>
+    <Reference Include="AcDbMgd"><HintPath>$(AutoCADPath)\acdbmgd.dll</HintPath><Private>False</Private></Reference>
+    <Reference Include="AcMgd"><HintPath>$(AutoCADPath)\acmgd.dll</HintPath><Private>False</Private></Reference>
+    <Reference Include="AdWindows"><HintPath>$(AutoCADPath)\AdWindows.dll</HintPath><Private>False</Private></Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="Resources\**\*.png" />
+    <None Update="Assets\WM_FORMAT.dwg" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Resource Include="Resources\**\*.png" />
+  </ItemGroup>
+  <Target Name="ValidateAutoCADReferences" BeforeTargets="ResolveReferences">
+    <Error Condition="'$(AutoCADVersion)' != '2025' And '$(AutoCADVersion)' != '2026' And '$(AutoCADVersion)' != '2027'" Text="Supported AutoCADVersion values: 2025, 2026, 2027." />
+    <Error Condition="'$(UseAutoCADNuGet)' != 'true' And (!Exists('$(AutoCADPath)\accoremgd.dll') Or !Exists('$(AutoCADPath)\acdbmgd.dll') Or !Exists('$(AutoCADPath)\acmgd.dll') Or !Exists('$(AutoCADPath)\AdWindows.dll'))" Text="AutoCAD $(AutoCADVersion) references not found at $(AutoCADPath). Set AutoCADPath to the matching installation or SDK directory." />
+  </Target>
+</Project>

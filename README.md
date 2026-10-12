@@ -1,0 +1,98 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/ooxgn-wordmark-dark.svg">
+    <img src="docs/assets/ooxgn-wordmark-light.svg" alt="OOXGN" width="360">
+  </picture>
+</p>
+
+<h1 align="center">Autocad Tools</h1>
+
+<p align="center">
+  Утилиты для оформления чертежей, работы с таблицами и выпуска PDF в AutoCAD.
+</p>
+
+<p align="center">
+  <strong>OOXGN · v0.0.0</strong><br>
+  AutoCAD 2025–2027 · Windows x64<br>
+  C# · WPF · .NET 8 / 10
+</p>
+
+<p align="center">
+  <a href="#установка">Установка</a> ·
+  <a href="docs/USAGE.md">Инструменты и команды</a> ·
+  <a href="docs/DEVELOPMENT.md">Сборка</a> ·
+  <a href="LICENSE">Лицензия</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/OOXGN-OOX/AutocadTools/actions/workflows/build.yml">
+    <img src="https://github.com/OOXGN-OOX/AutocadTools/actions/workflows/build.yml/badge.svg" alt="Сборка и проверки">
+  </a>
+</p>
+
+## Возможности
+
+| Задача | Инструменты |
+| --- | --- |
+| Оформление | Аксонометрия, автонумерация текста и атрибутов, вставка форматки, редактирование штампа |
+| Работа с объектами | Выбор по образцу, мультикопирование, сумма длин и площадей |
+| Подготовка чертежей | Подготовка планов, очистка DWG, сброс переопределений текста |
+| Выпуск документации | Пакетная печать PDF со сшивкой или отдельными файлами по листам |
+| Таблицы | Редактирование таблиц AutoCAD через XLSX с обратным импортом |
+| Передача заказчику | Создание отдельного DWG с подготовкой и очисткой объектов |
+
+Основные инструменты доступны на вкладке **Autocad Tools**. Описание функций и полный список команд — в [руководстве пользователя](docs/USAGE.md).
+
+## Установка
+
+> [!NOTE]
+> Готовый установщик пока не опубликован. Для установки подготовьте bundle или EXE по [инструкции сборки](docs/DEVELOPMENT.md#bundle-и-установщик). Страница дистрибутивов: [Releases](https://github.com/OOXGN-OOX/AutocadTools/releases).
+
+1. Закройте AutoCAD и Core Console.
+2. Запустите установщик или скопируйте `AutocadTools.bundle` в папку Autodesk `ApplicationPlugins`.
+3. Откройте AutoCAD и перейдите на вкладку **Autocad Tools**.
+
+Пути установки, ручная загрузка DLL, обновление и удаление описаны в [руководстве по установке](docs/INSTALLATION.md).
+
+## Быстрый запуск
+
+| Нужно сделать | Команда |
+| --- | --- |
+| Пронумеровать текст или атрибуты | `AUTONUM` |
+| Выбрать похожие объекты | `WSELECT` |
+| Посчитать длины и площади | `SUMLENGTH` |
+| Выпустить PDF | `WPLOT` |
+| Открыть таблицу в редакторе XLSX | `AUTOCADTOOLS_TABLEEXCEL` |
+
+Для нумерации задайте начальный номер и порядок объектов. Для PDF сохраните DWG, выберите форматки и порядок листов. Пошаговые сценарии — в [руководстве пользователя](docs/USAGE.md#примеры).
+
+## Совместимость
+
+| Версия AutoCAD | Профиль сборки |
+| --- | --- |
+| 2025 / 2026 | .NET 8, отдельная DLL для этой линии |
+| 2027 | .NET 10, отдельная DLL для этой линии |
+
+[CI](https://github.com/OOXGN-OOX/AutocadTools/actions/workflows/build.yml) проверяет сборку всех трёх профилей, обработку PDF, настройки и выбор обновлений. Полная проверка окон, Excel и штатной фоновой печати ещё не завершена. Подробности и результаты проверок — в [VALIDATION.md](docs/VALIDATION.md).
+
+## Сборка
+
+Нужны Windows x64, SDK .NET 8 и .NET 10, доступ к NuGet. Пример для AutoCAD 2026:
+
+```powershell
+git clone https://github.com/OOXGN-OOX/AutocadTools.git
+cd AutocadTools
+dotnet build .\AutocadTools.csproj -c Release -p:AutoCADVersion=2026
+```
+
+Другие профили, сборка дистрибутива и запуск тестов — в [руководстве разработчика](docs/DEVELOPMENT.md).
+
+## Обратная связь
+
+Ошибки и предложения оставляйте в [Issues](https://github.com/OOXGN-OOX/AutocadTools/issues). Для ошибки укажите версию AutoCAD, команду, шаги воспроизведения и текст сообщения.
+
+## Лицензия
+
+**Собственный код — © 2026 OOXGN.** Автор: [OOXGN-OOX](https://github.com/OOXGN-OOX). Проприетарная [лицензия](LICENSE) разрешает некоммерческое использование и копирование с обязательным указанием автора и ссылкой на проект. Коммерческое использование требует отдельного письменного соглашения.
+
+Сторонний код и библиотеки сохраняют свои лицензии: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). Для закрытой поставки с iText нужна коммерческая лицензия iText либо замена этой зависимости; [условия iText](https://itextpdf.com/how-buy/AGPLv3-license).

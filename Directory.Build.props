@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <AutoCADVersion Condition="'$(AutoCADVersion)' == ''">2027</AutoCADVersion>
+    <BaseIntermediateOutputPath>obj\AutoCAD$(AutoCADVersion)\</BaseIntermediateOutputPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj\**;bin\**;artifacts\**</DefaultItemExcludes>
+  </PropertyGroup>
+</Project>

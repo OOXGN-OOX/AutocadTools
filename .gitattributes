@@ -1,0 +1,12 @@
+* text=auto
+*.cs text eol=lf
+*.xaml text eol=lf
+*.csproj text eol=lf
+*.props text eol=lf
+*.ps1 text eol=crlf
+*.iss text eol=crlf
+*.md text eol=lf
+*.yml text eol=lf
+*.png binary
+*.dwg binary
+*.svg text eol=lf

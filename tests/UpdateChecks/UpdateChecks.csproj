@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFrameworks>net8.0;net10.0</TargetFrameworks><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>
+  <ItemGroup><PackageReference Include="Newtonsoft.Json" Version="13.0.4" /></ItemGroup>
+  <ItemGroup><Compile Include="..\..\Services\ReleaseVersion.cs" Link="ReleaseVersion.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="..\..\Services\UpdateSchedule.cs" Link="UpdateSchedule.cs" /></ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\Services\SettingsService.cs" Link="SettingsService.cs" />
+    <Compile Include="..\..\Services\UpdateCheckService.cs" Link="UpdateCheckService.cs" />
+  </ItemGroup>
+</Project>

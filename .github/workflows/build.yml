@@ -1,0 +1,37 @@
+name: Build and verify
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: Verify structure
+        shell: pwsh
+        run: ./scripts/Verify-Structure.ps1
+      - name: Build all AutoCAD profiles
+        shell: pwsh
+        run: |
+          foreach ($year in @(2025,2026,2027)) {
+            dotnet build ./AutocadTools.csproj -c Release "-p:AutoCADVersion=$year" -p:UseAutoCADNuGet=true
+            if ($LASTEXITCODE -ne 0) { throw "Build failed: $year" }
+          }
+      - name: Check PDF processing
+        shell: pwsh
+        run: dotnet run --project ./tests/PdfChecks/PdfChecks.csproj -c Release
+      - name: Check settings and updates on both runtimes
+        shell: pwsh
+        run: |
+          foreach ($framework in @('net8.0','net10.0')) {
+            dotnet run --project ./tests/UpdateChecks/UpdateChecks.csproj -c Release -f $framework
+            if ($LASTEXITCODE -ne 0) { throw "Regression checks failed: $framework" }
+          }
