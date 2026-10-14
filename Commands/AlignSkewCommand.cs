@@ -124,7 +124,7 @@ namespace AutocadTools.Commands
                 TransformCalculator.TransformationParams tParams =
                     _transformCalculator.CalculateTransformation(z1, z2, z3, s1, s2, s3);
 
-                ApplyTransformation(db, ed, selectedObjects, z1, z3, s1, s3, tParams);
+                ApplyTransformation(db, selectedObjects, z1, s1, tParams);
 
                 ed.WriteMessage("\nВыравнивание выполнено успешно.");
             }
@@ -134,11 +134,12 @@ namespace AutocadTools.Commands
             }
         }
 
-        private void ApplyTransformation(Database db, Editor editor, SelectionSet ss, Point3d sourceBase, Point3d z3, Point3d targetBase, Point3d s3, TransformCalculator.TransformationParams tParams)
+        private void ApplyTransformation(Database db, SelectionSet ss, Point3d sourceBase, Point3d targetBase, TransformCalculator.TransformationParams tParams)
         {
             _textObjectsForCorrection = new ObjectIdCollection();
             _blockObjectsForCorrection = new ObjectIdCollection();
             ObjectIdCollection geometryObjects = new ObjectIdCollection();
+            Matrix3d transformation = AlignSkewTransform.CreateMatrix(sourceBase, targetBase, tParams);
 
             using (Transaction tr = db.TransactionManager.StartTransaction())
             {
@@ -238,24 +239,26 @@ namespace AutocadTools.Commands
                         btr.Erase();
                     }
 
-                    double angleCorrection = GetAngle2d(z3, sourceBase) - GetAngle2d(s3, targetBase);
-
                     if (_textObjectsForCorrection.Count > 0)
                     {
-                        ApplyTextRotationCorrection(tr, sourceBase, angleCorrection);
+                        foreach (ObjectId id in _textObjectsForCorrection)
+                        {
+                            Entity text = (Entity)tr.GetObject(id, OpenMode.ForWrite);
+                            AlignSkewTransform.TransformText(text, transformation);
+                        }
                     }
 
                     if (_blockObjectsForCorrection.Count > 0)
                     {
-                        ApplyBlockCorrection(tr, sourceBase, angleCorrection);
+                        ApplyBlockCorrection(tr, transformation);
                     }
 
                     tr.Commit();
                 }
-                catch (System.Exception ex)
+                catch
                 {
-                    editor.WriteMessage($"\nОшибка применения: {ex.Message}");
                     tr.Abort();
+                    throw;
                 }
             }
         }
@@ -338,7 +341,8 @@ namespace AutocadTools.Commands
                             var originalAtt = atts[attDef.Tag];
                             DBText text = new DBText();
                             text.SetDatabaseDefaults();
-                            text.Position = attDef.Position;
+                            text.Normal = originalAtt.Normal;
+                            text.Position = originalAtt.Position;
                             text.TextString = originalAtt.TextString;
                             text.Height = originalAtt.Height;
                             text.Rotation = originalAtt.Rotation;
@@ -355,6 +359,9 @@ namespace AutocadTools.Commands
                             text.LineWeight = originalAtt.LineWeight;
                             text.TextStyleId = originalAtt.TextStyleId;
                             text.WidthFactor = originalAtt.WidthFactor;
+                            text.Oblique = originalAtt.Oblique;
+                            text.IsMirroredInX = originalAtt.IsMirroredInX;
+                            text.IsMirroredInY = originalAtt.IsMirroredInY;
 
                             ownerSpace.AppendEntity(text);
                             tr.AddNewlyCreatedDBObject(text, true);
@@ -422,82 +429,8 @@ namespace AutocadTools.Commands
             return new Point3d(basePt.X + dist * Math.Cos(angle), basePt.Y + dist * Math.Sin(angle), basePt.Z);
         }
 
-        private void ApplyTextRotationCorrection(Transaction tr, Point3d basePoint, double angleCorrection)
+        private void ApplyBlockCorrection(Transaction tr, Matrix3d transformation)
         {
-            foreach (ObjectId objId in _textObjectsForCorrection)
-            {
-                Entity ent = (Entity)tr.GetObject(objId, OpenMode.ForWrite);
-                Point3d textPosition;
-                double textRotation;
-
-                if (ent is DBText dbText)
-                {
-                    textPosition = dbText.Position;
-                    textRotation = dbText.Rotation;
-                }
-                else if (ent is MText mText)
-                {
-                    textPosition = mText.Location;
-                    textRotation = mText.Rotation;
-                }
-                else
-                {
-                    continue;
-                }
-
-                Point2d textPos2d = new Point2d(textPosition.X, textPosition.Y);
-                Point2d base2d = new Point2d(basePoint.X, basePoint.Y);
-
-                double cosB0 = Math.Cos(angleCorrection);
-                double sinB0 = Math.Sin(angleCorrection);
-
-                double denomAngle = textRotation;
-                double sinDenom = Math.Sin(denomAngle);
-                double cosDenom = Math.Cos(denomAngle);
-
-                double rotationCorrectionAngle;
-
-                if (Math.Abs(sinDenom) < 1e-6)
-                {
-                    rotationCorrectionAngle = 0;
-                }
-                else
-                {
-                    double fraction = cosDenom / sinDenom;
-                    double denominator = sinB0 + fraction;
-
-                    if (Math.Abs(denominator) < 1e-10)
-                    {
-                        rotationCorrectionAngle = 0;
-                    }
-                    else
-                    {
-                        rotationCorrectionAngle = Math.Atan(cosB0 / denominator);
-                    }
-                }
-
-                double targetRotation = rotationCorrectionAngle;
-                double rotationCorrectionDegrees = ((targetRotation - textRotation) * 180.0 / Math.PI) % 180.0;
-
-                Matrix3d rotMatrix = Matrix3d.Rotation(rotationCorrectionDegrees * Math.PI / 180.0, Vector3d.ZAxis, textPosition);
-                ent.TransformBy(rotMatrix);
-
-                double yOffset = textPos2d.Y - base2d.Y;
-                double xShift = yOffset * sinB0;
-                double yShift = yOffset * (cosB0 - 1.0);
-
-                Vector3d moveVector = new Vector3d(xShift, yShift, 0);
-                Matrix3d moveMatrix = Matrix3d.Displacement(moveVector);
-                ent.TransformBy(moveMatrix);
-            }
-        }
-
-        private void ApplyBlockCorrection(Transaction tr, Point3d basePoint, double angleCorrection)
-        {
-            double cosB0 = Math.Cos(angleCorrection);
-            double sinB0 = Math.Sin(angleCorrection);
-            Point2d base2d = new Point2d(basePoint.X, basePoint.Y);
-
             foreach (ObjectId objId in _blockObjectsForCorrection)
             {
                 BlockReference br = (BlockReference)tr.GetObject(objId, OpenMode.ForWrite);
@@ -526,12 +459,7 @@ namespace AutocadTools.Commands
                     blockPosition = br.Position;
                 }
 
-                Point2d blockPos2d = new Point2d(blockPosition.X, blockPosition.Y);
-                double yOffset = blockPos2d.Y - base2d.Y;
-                double xShift = yOffset * sinB0;
-                double yShift = yOffset * (cosB0 - 1.0);
-
-                Vector3d moveVector = new Vector3d(xShift, yShift, 0);
+                Vector3d moveVector = blockPosition.TransformBy(transformation) - blockPosition;
                 Matrix3d moveMatrix = Matrix3d.Displacement(moveVector);
                 br.TransformBy(moveMatrix);
             }

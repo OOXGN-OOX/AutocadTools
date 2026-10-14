@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AutoCADVersion Condition="'$(AutoCADVersion)' == ''">2026</AutoCADVersion>
+    <TargetFramework Condition="'$(AutoCADVersion)' == '2027'">net10.0-windows</TargetFramework>
+    <TargetFramework Condition="'$(AutoCADVersion)' != '2027'">net8.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Commands/AlignSkewCommand.cs" Link="AlignSkewCommand.cs" />
+    <Compile Include="../../Services/TransformCalculator.cs" Link="TransformCalculator.cs" />
+    <Compile Include="../../Services/AlignSkewTransform.cs" Link="AlignSkewTransform.cs" />
+    <Reference Include="AcCoreMgd"><HintPath>C:\Program Files\Autodesk\AutoCAD $(AutoCADVersion)\accoremgd.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="AcDbMgd"><HintPath>C:\Program Files\Autodesk\AutoCAD $(AutoCADVersion)\acdbmgd.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="AcMgd"><HintPath>C:\Program Files\Autodesk\AutoCAD $(AutoCADVersion)\acmgd.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>
