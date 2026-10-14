@@ -21,6 +21,7 @@ namespace AutocadTools.Views
             InitializeComponent();
             LoadVersion();
             AutoUpdateCheck.IsChecked = Services.SettingsService.Settings.AutoCheckUpdates;
+            AutoInstallUpdateCheck.IsChecked = Services.SettingsService.Settings.AutoInstallUpdates;
             PrereleaseUpdateCheck.IsChecked = Services.SettingsService.Settings.IncludePrereleaseUpdates;
             _settingsLoaded = true;
         }
@@ -28,9 +29,12 @@ namespace AutocadTools.Views
         private void UpdateSettingsChanged(object sender, RoutedEventArgs e)
         {
             if (!_settingsLoaded) return;
+            bool wasAutomatic = Services.SettingsService.Settings.AutoInstallUpdates;
             Services.SettingsService.Settings.AutoCheckUpdates = AutoUpdateCheck.IsChecked == true;
+            Services.SettingsService.Settings.AutoInstallUpdates = AutoInstallUpdateCheck.IsChecked == true;
             Services.SettingsService.Settings.IncludePrereleaseUpdates = PrereleaseUpdateCheck.IsChecked == true;
             Services.SettingsService.Save();
+            if (wasAutomatic && !Services.SettingsService.Settings.AutoInstallUpdates) Services.UpdateCheckService.ApplySettings();
         }
 
         private void LoadVersion()

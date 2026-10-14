@@ -34,7 +34,7 @@ $obsolete = Join-Path $installPath 'Contents\Windows\2027\obsolete-test.dll'
 Run-TestInstall 'upgrade.log'
 if ($PreviousInstallerPath) {
     $log = Get-Content -LiteralPath (Join-Path $testRoot 'upgrade.log') -Raw
-    if ($log -notmatch 'Autocad Tools: uninstall previous version') { throw 'Previous version uninstaller was not invoked.' }
+    if ($log -match 'Autocad Tools: uninstall previous version') { throw 'Upgrade must not remove the old installation before replacing files.' }
 }
 if (Test-Path -LiteralPath $obsolete) { throw 'Obsolete DLL was not removed during update.' }
 $uninstaller = Get-ChildItem -LiteralPath $installPath -Filter 'unins*.exe' | Sort-Object Name -Descending | Select-Object -First 1 -ExpandProperty FullName

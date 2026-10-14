@@ -6,5 +6,8 @@
   <ItemGroup>
     <Compile Include="..\..\Services\SettingsService.cs" Link="SettingsService.cs" />
     <Compile Include="..\..\Services\UpdateCheckService.cs" Link="UpdateCheckService.cs" />
+    <Compile Include="..\..\Services\UpdatePackageDownloader.cs" Link="UpdatePackageDownloader.cs" />
+    <Compile Include="..\..\Services\UpdateInstallation.cs" Link="UpdateInstallation.cs" />
+    <EmbeddedResource Include="..\..\Assets\UpdateRunner.ps1" LogicalName="AutocadTools.UpdateRunner.ps1" />
   </ItemGroup>
 </Project>

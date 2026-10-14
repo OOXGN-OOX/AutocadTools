@@ -38,6 +38,7 @@ if (ReleaseVersion.FindUpdate(releases, new Version(1,1,0), true).Tag != "v2.0.0
 if (ReleaseVersion.FindUpdate(releases, new Version(3,0,0)) != null) throw new Exception("Downgrade/unsafe URL accepted");
 if (ReleaseVersion.FindUpdate("[]", new Version(1,1,0)) != null) throw new Exception("Empty release list failed");
 Console.WriteLine("PASS: versions, drafts, prereleases, no downgrade, safe repository URLs, malformed tags, empty list.");
+await DownloadChecks.Run();
 var now = new DateTime(2026,10,12,12,0,0,DateTimeKind.Utc);
 var schedule = new UpdateSchedule();
 if (!schedule.IsDue(now)) throw new Exception("Startup check missing");

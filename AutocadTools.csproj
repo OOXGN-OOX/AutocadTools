@@ -47,6 +47,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Remove="Resources\**\*.png" />
+    <EmbeddedResource Include="Assets\UpdateRunner.ps1" LogicalName="AutocadTools.UpdateRunner.ps1" />
     <None Update="Assets\WM_FORMAT.dwg" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Resource Include="Resources\**\*.png" />
   </ItemGroup>

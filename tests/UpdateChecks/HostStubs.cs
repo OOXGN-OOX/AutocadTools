@@ -24,7 +24,8 @@ namespace Autodesk.AutoCAD.ApplicationServices
         public bool ThrowOnRead;
         public Document MdiActiveDocument => ThrowOnRead ? throw new InvalidOperationException("Simulated host failure") : new Document();
     }
-    internal sealed class Document { public string CommandInProgress => ""; }
+    internal sealed class Document { public string CommandInProgress => ""; public Editor Editor { get; } = new Editor(); }
+    internal sealed class Editor { public void WriteMessage(string text) { } }
 }
 namespace System.Windows
 {

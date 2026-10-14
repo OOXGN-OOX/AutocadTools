@@ -74,9 +74,11 @@ namespace AutocadTools.Services
     public class PluginSettings
     {
         public bool AutoCheckUpdates { get; set; } = true;
+        public bool AutoInstallUpdates { get; set; } = true;
         public bool IncludePrereleaseUpdates { get; set; } = false;
         public DateTime LastUpdateCheckUtc { get; set; }
         public string LastNotifiedUpdateTag { get; set; }
+        public string PendingUpdateDirectory { get; set; }
         // SumLength settings
         public int ScaleNumerator { get; set; } = 1;
         public int ScaleDenominator { get; set; } = 1;

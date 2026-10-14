@@ -8,7 +8,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $taskRoot = Split-Path $PSScriptRoot -Parent
 & (Join-Path $PSScriptRoot 'Verify-Structure.ps1') | Out-Host
-foreach ($taskScript in @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.ps1') + @(Get-ChildItem -LiteralPath (Join-Path $taskRoot 'tests') -Filter '*.ps1' -Recurse)) {
+foreach ($taskScript in @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.ps1') + @(Get-ChildItem -LiteralPath (Join-Path $taskRoot 'tests') -Filter '*.ps1' -Recurse) + @(Get-ChildItem -LiteralPath (Join-Path $taskRoot 'Assets') -Filter '*.ps1')) {
     $taskTokens = $null; $taskErrors = $null
     $null = [Management.Automation.Language.Parser]::ParseFile($taskScript.FullName, [ref]$taskTokens, [ref]$taskErrors)
     if ($taskErrors.Count) { throw ($taskErrors | Out-String) }
@@ -33,6 +33,7 @@ if ($Suite -in @('All','Pdf')) {
     Invoke-TaskDotnet @('run', '--project', (Join-Path $taskRoot 'tests\PdfChecks\PdfChecks.csproj'), '-c', 'Debug')
 }
 if ($Suite -in @('All','Updates')) {
+    & (Join-Path $taskRoot 'tests\UpdateRunnerChecks\Run.ps1') | Out-Host
     $taskSystemDotnet = Get-Command dotnet.exe -ErrorAction SilentlyContinue
     foreach ($taskFramework in @('net8.0','net10.0')) {
         $taskMajor = if ($taskFramework -eq 'net8.0') { '8' } else { '10' }

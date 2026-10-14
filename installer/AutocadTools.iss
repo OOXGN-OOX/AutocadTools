@@ -38,6 +38,7 @@ WizardStyle=modern
 CloseApplications=no
 RestartApplications=no
 SetupLogging=yes
+SetupMutex=Global\AutocadTools.Setup
 VersionInfoVersion={#AppVersion}.0
 
 [Languages]
@@ -82,7 +83,7 @@ begin
 end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;
-var RootKey: Integer; Key, InstallDir, Uninstaller: String; ExitCode, QuotePos: Integer;
+var RootKey: Integer; Key, InstallDir: String;
 begin
   Result := '';
   if AutoCADIsRunning() then
@@ -94,40 +95,13 @@ begin
   Key := 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{D3A3F30D-A5F7-4DF9-A6D4-CC17D24B83DB}_is1';
   if RegQueryStringValue(RootKey, Key, 'InstallLocation', InstallDir) then
   begin
-    // Only remove this product at the selected target; never uninstall an unrelated/cross-scope installation.
+    // In-place upgrades preserve the existing installation until files are replaced.
     if CompareText(RemoveBackslashUnlessRoot(InstallDir), RemoveBackslashUnlessRoot(WizardDirValue)) <> 0 then
     begin
       Result := 'Обнаружена другая папка установки Autocad Tools. Сначала удалите прежнюю копию через «Установленные приложения» Windows: ' + InstallDir;
       Exit;
     end;
-    if not RegQueryStringValue(RootKey, Key, 'UninstallString', Uninstaller) then
-    begin
-      Result := 'Не найдена команда удаления прежней версии.';
-      Exit;
-    end;
-    if (Length(Uninstaller) > 0) and (Uninstaller[1] = '"') then
-    begin
-      Delete(Uninstaller, 1, 1);
-      QuotePos := Pos('"', Uninstaller);
-      if QuotePos > 0 then Uninstaller := Copy(Uninstaller, 1, QuotePos - 1);
-    end;
-    if (CompareText(ExtractFileDir(Uninstaller), RemoveBackslashUnlessRoot(InstallDir)) <> 0) or
-       (CompareText(ExtractFileExt(Uninstaller), '.exe') <> 0) or
-       (CompareText(Copy(ExtractFileName(Uninstaller), 1, 5), 'unins') <> 0) then
-    begin
-      Result := 'Некорректный путь деинсталлятора прежней версии.';
-      Exit;
-    end;
-    if not FileExists(Uninstaller) then
-    begin
-      Result := 'Не найден деинсталлятор прежней версии: ' + Uninstaller;
-      Exit;
-    end;
-    Log('Autocad Tools: uninstall previous version: ' + Uninstaller);
-    if not Exec(Uninstaller, '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART', '', SW_HIDE, ewWaitUntilTerminated, ExitCode) then
-      Result := 'Не удалось запустить удаление прежней версии.'
-    else if ExitCode <> 0 then
-      Result := 'Удаление прежней версии не завершилось успешно. Код: ' + IntToStr(ExitCode);
+
   end;
 end;
 

@@ -40,7 +40,7 @@
 ## Установка
 
 > [!NOTE]
-> Готовый установщик пока не опубликован. Для установки подготовьте bundle или EXE по [инструкции сборки](docs/DEVELOPMENT.md#bundle-и-установщик). Страница дистрибутивов: [Releases](https://github.com/OOXGN-OOX/AutocadTools/releases).
+> Дистрибутивы публикуются в [GitHub Releases](https://github.com/OOXGN-OOX/AutocadTools/releases). Сборка из исходников описана в [руководстве разработчика](docs/DEVELOPMENT.md#bundle-и-установщик).
 
 1. Закройте AutoCAD и Core Console.
 2. Запустите установщик или скопируйте `AutocadTools.bundle` в папку Autodesk `ApplicationPlugins`.
