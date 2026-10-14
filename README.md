@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <strong>OOXGN · v0.0.0</strong><br>
+  <strong>OOXGN · v0.1.0</strong><br>
   AutoCAD 2025–2027 · Windows x64<br>
   C# · WPF · .NET 8 / 10
 </p>
@@ -77,15 +77,17 @@
 
 ## Сборка
 
-Нужны Windows x64, SDK .NET 8 и .NET 10, доступ к NuGet. Пример для AutoCAD 2026:
+На Windows x64 запустите одну команду из папки проекта:
 
 ```powershell
-git clone https://github.com/OOXGN-OOX/AutocadTools.git
-cd AutocadTools
-dotnet build .\AutocadTools.csproj -c Release -p:AutoCADVersion=2026
+.\build.cmd
 ```
 
-Другие профили, сборка дистрибутива и запуск тестов — в [руководстве разработчика](docs/DEVELOPMENT.md).
+Команда проверит исходники, соберёт DLL для AutoCAD 2025/2026 и 2027 и создаст **`artifacts\release\AutocadTools-0.1.0-Setup.exe`**. Рядом появятся ZIP с bundle и контрольные суммы. AutoCAD для сборки устанавливать не нужно.
+
+При первом запуске нужен интернет: недостающий SDK .NET 10 и переносимый Inno Setup 6.7.3 загружаются автоматически в `artifacts\tools`, зависимости — из NuGet. Инструменты используются повторно; права администратора для сборки не требуются. Готовый EXE устанавливает плагин на компьютере пользователя.
+
+Параметры сборки и запуск тестов — в [руководстве разработчика](docs/DEVELOPMENT.md).
 
 ## Обратная связь
 

@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 $sourceFiles = Get-ChildItem -LiteralPath $root -Recurse -File | Where-Object { $_.Extension -in '.cs','.xaml' -and $_.FullName -notmatch '\\(bin|obj|artifacts|tests)\\' }
 $commands = foreach ($file in $sourceFiles | Where-Object Extension -eq '.cs') {

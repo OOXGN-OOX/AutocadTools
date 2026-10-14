@@ -4,7 +4,7 @@
 
 ## Установка
 
-1. Соберите `AutocadTools-0.0.0-Setup.exe` по инструкции в [руководстве по сборке](DEVELOPMENT.md#bundle-и-установщик) или скачайте установщик из [GitHub Releases](https://github.com/OOXGN-OOX/AutocadTools/releases), когда он будет опубликован.
+1. Соберите `AutocadTools-0.1.0-Setup.exe` по инструкции в [руководстве по сборке](DEVELOPMENT.md#bundle-и-установщик) или скачайте установщик из [GitHub Releases](https://github.com/OOXGN-OOX/AutocadTools/releases), когда он будет опубликован.
 2. Закройте AutoCAD и Core Console.
 3. Запустите установщик. Для установки всем пользователям потребуются права администратора; установка только для себя не требует повышения прав.
 4. Запустите AutoCAD. В ленте появится вкладка **Autocad Tools**.

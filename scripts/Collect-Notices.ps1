@@ -6,14 +6,14 @@ New-Item -ItemType Directory -Path $destination -Force | Out-Null
 $seen = @{}
 foreach ($year in @(2025,2027)) {
     $assetsPath = Join-Path $root "obj\AutoCAD$year\project.assets.json"
-    $assets = Get-Content -LiteralPath $assetsPath -Raw | ConvertFrom-Json
+    $assets = Get-Content -LiteralPath $assetsPath -Raw -Encoding UTF8 | ConvertFrom-Json
     foreach ($entry in $assets.libraries.PSObject.Properties) {
         if ($entry.Value.type -ne 'package' -or $entry.Name -like 'AutoCAD.NET*' -or $seen.ContainsKey($entry.Name)) { continue }
         $seen[$entry.Name] = $true
         $packagePath = Join-Path ($assets.packageFolders.PSObject.Properties | Select-Object -First 1 -ExpandProperty Name) $entry.Value.path
         $nuspec = Get-ChildItem -LiteralPath $packagePath -Filter *.nuspec | Select-Object -First 1
         if (!$nuspec) { throw "Missing package metadata: $($entry.Name)" }
-        $metadata = ([xml](Get-Content -LiteralPath $nuspec.FullName -Raw)).package.metadata
+        $metadata = ([xml](Get-Content -LiteralPath $nuspec.FullName -Raw -Encoding UTF8)).package.metadata
         # Short directory names keep installer source paths below the Windows MAX_PATH limit.
         $packageDestination = Join-Path $destination ('p' + $seen.Count.ToString('D3'))
         New-Item -ItemType Directory -Path $packageDestination -Force | Out-Null

@@ -35,3 +35,12 @@ jobs:
             dotnet run --project ./tests/UpdateChecks/UpdateChecks.csproj -c Release -f $framework
             if ($LASTEXITCODE -ne 0) { throw "Regression checks failed: $framework" }
           }
+      - name: Build EXE installer
+        shell: cmd
+        run: build.cmd
+      - name: Upload installer and bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: AutocadTools-installer
+          path: artifacts/release/*
+          if-no-files-found: error

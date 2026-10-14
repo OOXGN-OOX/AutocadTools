@@ -5,7 +5,7 @@
     <TargetFramework Condition="'$(AutoCADVersion)' == '2025' Or '$(AutoCADVersion)' == '2026'">net8.0-windows</TargetFramework>
     <AssemblyName>AutocadTools</AssemblyName>
     <RootNamespace>AutocadTools</RootNamespace>
-    <Version>0.0.0</Version>
+    <Version>0.1.0</Version>
     <Product>Autocad Tools</Product>
     <Title>Autocad Tools</Title>
     <Copyright>Copyright (c) 2026 OOXGN (GitHub: OOXGN-OOX). All rights reserved.</Copyright>
