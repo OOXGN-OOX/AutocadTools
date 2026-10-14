@@ -1,6 +1,7 @@
 param(
     [string]$CompilerPath,
-    [switch]$SkipDotnet
+    [switch]$SkipDotnet,
+    [switch]$SkipCompiler
 )
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -54,6 +55,9 @@ if (!$SkipDotnet) {
     Write-Host "Using .NET: $dotnetPath"
 }
 
+if ($SkipCompiler) {
+    return [PSCustomObject]@{ DotnetPath = $dotnetPath; CompilerPath = $null }
+}
 if ($CompilerPath) {
     $CompilerPath = (Resolve-Path -LiteralPath $CompilerPath).Path
     if (!(Test-Path -LiteralPath $CompilerPath -PathType Leaf)) { throw 'Inno Setup compiler not found.' }

@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <strong>OOXGN · v0.1.0</strong><br>
+  <strong>OOXGN · разработка v0.1.0</strong><br>
   AutoCAD 2025–2027 · Windows x64<br>
   C# · WPF · .NET 8 / 10
 </p>
@@ -22,12 +22,6 @@
   <a href="docs/USAGE.md">Инструменты и команды</a> ·
   <a href="docs/DEVELOPMENT.md">Сборка</a> ·
   <a href="LICENSE">Лицензия</a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/OOXGN-OOX/AutocadTools/actions/workflows/build.yml">
-    <img src="https://github.com/OOXGN-OOX/AutocadTools/actions/workflows/build.yml/badge.svg" alt="Сборка и проверки">
-  </a>
 </p>
 
 ## Возможности
@@ -73,21 +67,9 @@
 | 2025 / 2026 | .NET 8, отдельная DLL для этой линии |
 | 2027 | .NET 10, отдельная DLL для этой линии |
 
-[CI](https://github.com/OOXGN-OOX/AutocadTools/actions/workflows/build.yml) проверяет сборку всех трёх профилей, обработку PDF, настройки и выбор обновлений. Полная проверка окон, Excel и штатной фоновой печати ещё не завершена. Подробности и результаты проверок — в [VALIDATION.md](docs/VALIDATION.md).
+## Для разработчиков
 
-## Сборка
-
-На Windows x64 запустите одну команду из папки проекта:
-
-```powershell
-.\build.cmd
-```
-
-Команда проверит исходники, соберёт DLL для AutoCAD 2025/2026 и 2027 и создаст **`artifacts\release\AutocadTools-0.1.0-Setup.exe`**. Рядом появятся ZIP с bundle и контрольные суммы. AutoCAD для сборки устанавливать не нужно.
-
-При первом запуске нужен интернет: недостающий SDK .NET 10 и переносимый Inno Setup 6.7.3 загружаются автоматически в `artifacts\tools`, зависимости — из NuGet. Инструменты используются повторно; права администратора для сборки не требуются. Готовый EXE устанавливает плагин на компьютере пользователя.
-
-Параметры сборки и запуск тестов — в [руководстве разработчика](docs/DEVELOPMENT.md).
+Сборка и выпуск версий описаны в [руководстве разработчика](docs/DEVELOPMENT.md).
 
 ## Обратная связь
 

@@ -2,7 +2,8 @@ param(
     [string]$CompilerPath,
     [string]$BundlePath,
     [string]$AutoCAD2025Path,
-    [string]$AutoCAD2027Path
+    [string]$AutoCAD2027Path,
+    [switch]$Force
 )
 $ErrorActionPreference = 'Stop'
 $env:DOTNET_NOLOGO = 'true'
@@ -10,9 +11,18 @@ $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
 $env:DOTNET_GENERATE_ASPNET_CERTIFICATE = 'false'
 Import-Module Microsoft.PowerShell.Archive -ErrorAction Stop
 . (Join-Path $PSScriptRoot 'File-Hash.ps1')
+. (Join-Path $PSScriptRoot 'Release-State.ps1')
 $root = Split-Path $PSScriptRoot -Parent
 $version = ([xml](Get-Content -LiteralPath (Join-Path $root 'AutocadTools.csproj') -Raw)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
 $usePrebuiltBundle = ![string]::IsNullOrWhiteSpace($BundlePath)
+$release = Join-Path $root 'artifacts\release'
+$fingerprint = Get-ReleaseFingerprint -Root $root
+# Custom SDK/compiler inputs are not represented by repository hashes.
+$cacheAllowed = !$usePrebuiltBundle -and !$AutoCAD2025Path -and !$AutoCAD2027Path -and !$CompilerPath
+if (!$Force -and $cacheAllowed -and (Test-ReleaseCache -Directory $release -Fingerprint $fingerprint -Version $version)) {
+    Write-Output "Unchanged sources: verified release reused at $release"
+    return
+}
 $tools = & (Join-Path $PSScriptRoot 'Get-BuildTools.ps1') -CompilerPath $CompilerPath -SkipDotnet:$usePrebuiltBundle
 $CompilerPath = $tools.CompilerPath
 if (!$usePrebuiltBundle) {
@@ -41,7 +51,6 @@ if (!$usePrebuiltBundle) {
 } elseif (!(Test-Path -LiteralPath (Join-Path $BundlePath 'ThirdPartyNotices') -PathType Container)) {
     throw 'Prebuilt bundle must include ThirdPartyNotices. Use Build-Installer.ps1 without -BundlePath to build a complete release.'
 }
-$release = Join-Path $root 'artifacts\release'
 New-Item -ItemType Directory -Path $release -Force | Out-Null
 Write-Host 'Compiling EXE installer...'
 & $CompilerPath /Q "/DAppVersion=$version" "/DBundleDir=$BundlePath" "/DReleaseDir=$release" (Join-Path $root 'installer\AutocadTools.iss') | Out-Host
@@ -51,5 +60,11 @@ Compress-Archive -LiteralPath $BundlePath -DestinationPath $zip -Force
 $files = @((Join-Path $release "AutocadTools-$version-Setup.exe"), $zip)
 $hashes = foreach ($file in $files) { "$(Get-FileDigest -Path $file)  $([IO.Path]::GetFileName($file))" }
 $hashes | Set-Content -LiteralPath (Join-Path $release 'SHA256SUMS.txt') -Encoding ascii
+if ($cacheAllowed) {
+    $receiptFiles = foreach ($file in @($files) + @((Join-Path $release 'SHA256SUMS.txt'))) {
+        @{ Name = [IO.Path]::GetFileName($file); Hash = Get-FileDigest -Path $file }
+    }
+    @{ Version = [string]$version; Fingerprint = $fingerprint; Files = @($receiptFiles) } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $release 'build-state.json') -Encoding UTF8
+}
 Write-Output "Release prepared: $release"
 Write-Output "Installer: $($files[0])"

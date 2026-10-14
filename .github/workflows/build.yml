@@ -1,8 +1,7 @@
-name: Build and verify
+name: Verify development cycle
 on:
-  push:
-  pull_request:
   workflow_dispatch:
+  workflow_call:
 permissions:
   contents: read
 jobs:
@@ -15,32 +14,6 @@ jobs:
           dotnet-version: |
             8.0.x
             10.0.x
-      - name: Verify structure
-        shell: pwsh
-        run: ./scripts/Verify-Structure.ps1
-      - name: Build all AutoCAD profiles
-        shell: pwsh
-        run: |
-          foreach ($year in @(2025,2026,2027)) {
-            dotnet build ./AutocadTools.csproj -c Release "-p:AutoCADVersion=$year" -p:UseAutoCADNuGet=true
-            if ($LASTEXITCODE -ne 0) { throw "Build failed: $year" }
-          }
-      - name: Check PDF processing
-        shell: pwsh
-        run: dotnet run --project ./tests/PdfChecks/PdfChecks.csproj -c Release
-      - name: Check settings and updates on both runtimes
-        shell: pwsh
-        run: |
-          foreach ($framework in @('net8.0','net10.0')) {
-            dotnet run --project ./tests/UpdateChecks/UpdateChecks.csproj -c Release -f $framework
-            if ($LASTEXITCODE -ne 0) { throw "Regression checks failed: $framework" }
-          }
-      - name: Build EXE installer
+      - name: Structure, scripts and standalone regression tests
         shell: cmd
-        run: build.cmd
-      - name: Upload installer and bundle
-        uses: actions/upload-artifact@v4
-        with:
-          name: AutocadTools-installer
-          path: artifacts/release/*
-          if-no-files-found: error
+        run: dev.cmd Test
