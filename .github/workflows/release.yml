@@ -1,52 +1,97 @@
 name: Release
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
+  workflow_dispatch:
 permissions:
   contents: write
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-main
   cancel-in-progress: false
 jobs:
+  plan:
+    runs-on: windows-latest
+    outputs:
+      required: ${{ steps.plan.outputs.required }}
+      version: ${{ steps.plan.outputs.version }}
+      tag: ${{ steps.plan.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Plan version release
+        id: plan
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ($env:GITHUB_REF -ne 'refs/heads/main') { throw 'Release workflow must run on main.' }
+          . ./scripts/Release-Plan.ps1
+          $candidate = Get-ReleaseCandidate $PWD.Path
+          $existing = $null
+          if ($candidate.Ready) {
+            $headers = @{ Authorization = "Bearer $env:GH_TOKEN"; Accept = 'application/vnd.github+json'; 'X-GitHub-Api-Version' = '2022-11-28' }
+            try { $existing = Invoke-RestMethod -Uri "https://api.github.com/repos/$env:GITHUB_REPOSITORY/releases/tags/$($candidate.Tag)" -Headers $headers }
+            catch { if ([int]$_.Exception.Response.StatusCode -ne 404) { throw } }
+          }
+          $required = Test-ReleaseRequired $candidate $existing $env:GITHUB_SHA
+          "required=$($required.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          "version=$($candidate.Version)" >> $env:GITHUB_OUTPUT
+          "tag=$($candidate.Tag)" >> $env:GITHUB_OUTPUT
+          if (!$candidate.Ready) { Write-Host 'Versioned release notes are required to finish the development cycle.' }
+          elseif (!$required) { Write-Host 'This version is already published; no distribution build is needed.' }
   verify:
+    needs: plan
+    if: needs.plan.outputs.required == 'true'
     uses: ./.github/workflows/build.yml
     permissions:
       contents: read
   release:
-    needs: verify
+    needs: [plan, verify]
+    if: needs.plan.outputs.required == 'true'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-      - name: Validate version and release notes
+      - name: Validate release target
         shell: pwsh
         env:
-          TAG_NAME: ${{ github.ref_name }}
+          TAG_NAME: ${{ needs.plan.outputs.tag }}
         run: |
-          if ($env:TAG_NAME -notmatch '^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$') { throw 'Expected vX.Y.Z tag.' }
-          $version = ([xml](Get-Content AutocadTools.csproj -Raw)).Project.PropertyGroup.Version
-          if ($env:TAG_NAME -ne "v$version") { throw 'Tag and project versions differ.' }
-          if (!(Test-Path -LiteralPath "docs/releases/$($env:TAG_NAME).md")) { throw 'Release notes missing.' }
-      - name: Build distribution once
+          $tagExists = git tag --list $env:TAG_NAME
+          if ($tagExists) {
+            $tagCommit = git rev-list -n 1 $env:TAG_NAME
+            if ($tagCommit -ne $env:GITHUB_SHA) { throw 'Version tag points to different sources. Use a new version.' }
+          }
+      - name: Build distribution
         shell: cmd
         run: build.cmd
       - uses: actions/upload-artifact@v4
         with:
-          name: AutocadTools-release
+          name: AutocadTools-${{ needs.plan.outputs.version }}
           path: |
             artifacts/release/*-Setup.exe
             artifacts/release/*-Bundle.zip
             artifacts/release/SHA256SUMS.txt
           if-no-files-found: error
-      - name: Publish GitHub release
+      - name: Publish complete release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG_NAME: ${{ github.ref_name }}
+          TAG_NAME: ${{ needs.plan.outputs.tag }}
+          VERSION: ${{ needs.plan.outputs.version }}
         run: |
-          $version = $env:TAG_NAME.Substring(1)
-          gh release create $env:TAG_NAME "artifacts/release/AutocadTools-$version-Setup.exe" "artifacts/release/AutocadTools-$version-Bundle.zip" "artifacts/release/SHA256SUMS.txt" --verify-tag --title "Autocad Tools $version" --notes-file "docs/releases/$($env:TAG_NAME).md"
-          if ($LASTEXITCODE -ne 0) { throw 'Release publication failed; build artifacts are available for recovery.' }
+          $existing = gh release view $env:TAG_NAME --json isDraft 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            if (!(($existing | ConvertFrom-Json).isDraft)) { throw 'Published versions must not be overwritten.' }
+          } else {
+            gh release create $env:TAG_NAME --target $env:GITHUB_SHA --draft --title "Autocad Tools $env:VERSION" --notes-file "docs/releases/$($env:TAG_NAME).md"
+            if ($LASTEXITCODE -ne 0) { throw 'Could not create release draft.' }
+          }
+          gh release upload $env:TAG_NAME "artifacts/release/AutocadTools-$($env:VERSION)-Setup.exe" "artifacts/release/AutocadTools-$($env:VERSION)-Bundle.zip" "artifacts/release/SHA256SUMS.txt" --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Asset upload failed; release remains a draft.' }
+          gh release edit $env:TAG_NAME --draft=false --latest
+          if ($LASTEXITCODE -ne 0) { throw 'Release publication failed; draft is available for recovery.' }

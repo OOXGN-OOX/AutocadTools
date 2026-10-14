@@ -3,6 +3,7 @@ param(
     [Parameter(Mandatory=$true)][ValidatePattern('^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$')][string]$Version,
     [Parameter(Mandatory=$true)][string]$NotesPath,
     [switch]$Publish,
+    [switch]$BuildLocal,
     [ValidateSet('2026','2027')][string]$AutoCADVersion = '2026'
 )
 $ErrorActionPreference = 'Stop'
@@ -27,7 +28,7 @@ if ($Publish) {
     $taskRemoteTag = Invoke-CycleGit @('ls-remote', '--tags', 'origin', "refs/tags/$taskTag")
     if ($taskRemoteTag) { throw "Remote tag already exists: $taskTag" }
 }
-$taskAction = if ($Publish) { "Test, commit all project changes and push $taskTag; GitHub builds and publishes the release" } else { 'Test and build a local release; leave Git unchanged' }
+$taskAction = if ($Publish) { 'Test, prepare and push the version; release starts after merging into main' } else { 'Test and prepare version metadata locally' }
 if (!$PSCmdlet.ShouldProcess($taskRoot, "Finish $Version. $taskAction")) { return }
 
 # Test code first; an interrupted test run must not advance the release version.
@@ -38,17 +39,17 @@ $taskUpdated = [regex]::Replace($taskSource, '<Version>[^<]+</Version>', "<Versi
 $taskReleaseNotes = Join-Path $taskRoot 'docs\releases'
 New-Item -ItemType Directory -Path $taskReleaseNotes -Force | Out-Null
 [IO.File]::WriteAllText((Join-Path $taskReleaseNotes "$taskTag.md"), $taskNotes, [Text.UTF8Encoding]::new($false))
-if (!$Publish) {
+if ($BuildLocal) {
     & (Join-Path $PSScriptRoot 'Build-Installer.ps1') | Out-Host
-    Write-Output "Local version $Version prepared. Commit/push/release were not performed."
+}
+if (!$Publish) {
+    Write-Output "Version $Version prepared. Merge the version and its release notes into main to start the release workflow."
     return
 }
 Invoke-CycleGit @('diff', '--check') | Out-Host
 Invoke-CycleGit @('add', '--all') | Out-Host
-Invoke-CycleGit @('commit', '-m', "Release $taskTag") | Out-Host
-Invoke-CycleGit @('tag', '-a', $taskTag, '-m', "Release $taskTag") | Out-Host
-# Commit and tag arrive together, or neither does. A failed push can be retried
-# with the same command printed below; no second commit or tag is needed.
-Write-Host "Publishing with: git push --atomic origin HEAD refs/tags/$taskTag"
-Invoke-CycleGit @('push', '--atomic', 'origin', 'HEAD', "refs/tags/$taskTag") | Out-Host
-Write-Output "Cycle $Version sent. Track the Release workflow on GitHub."
+& git -C $taskRoot diff --cached --quiet
+if ($LASTEXITCODE -eq 1) { Invoke-CycleGit @('commit', '-m', "Prepare $taskTag") | Out-Host }
+elseif ($LASTEXITCODE -ne 0) { throw 'Cannot inspect prepared changes.' }
+Invoke-CycleGit @('push', 'origin', "HEAD:refs/heads/$taskBranch") | Out-Host
+Write-Output "Version $Version sent to $taskBranch. Merge into main to build and publish the release."
