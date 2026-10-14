@@ -9,11 +9,11 @@ try {
     $taskCode = Join-Path $taskScratch 'Sample.cs'
     [IO.File]::WriteAllText($taskCode, 'first')
     $taskFirst = Get-ReleaseFingerprint -Root $taskScratch
-    foreach ($taskDirectory in @('docs','tests')) {
+    foreach ($taskDirectory in @('docs','tests','.agents')) {
         New-Item -ItemType Directory -Path (Join-Path $taskScratch $taskDirectory) | Out-Null
         [IO.File]::WriteAllText((Join-Path $taskScratch "$taskDirectory\ignored.cs"), 'not shipped')
     }
-    Assert-Workflow ((Get-ReleaseFingerprint -Root $taskScratch) -eq $taskFirst) 'Documentation/tests should not invalidate shipped binaries.'
+    Assert-Workflow ((Get-ReleaseFingerprint -Root $taskScratch) -eq $taskFirst) 'Documentation/tests/local working files should not invalidate shipped binaries.'
     [IO.File]::WriteAllText($taskCode, 'changed')
     $taskChanged = Get-ReleaseFingerprint -Root $taskScratch
     Assert-Workflow ($taskChanged -ne $taskFirst) 'Code change must invalidate cache.'

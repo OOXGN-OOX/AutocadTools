@@ -1,7 +1,7 @@
 # Defines helpers only. Import with dot-sourcing.
 function Get-ReleaseFingerprint([string]$Root) {
     $taskInputs = Get-ChildItem -LiteralPath $Root -Recurse -File | Where-Object {
-        $_.FullName -notmatch '\\(\.git|\.vs|bin|obj|artifacts|tests|docs)\\' -and
+        $_.FullName -notmatch '\\(\.git|\.vs|\.agents|bin|obj|artifacts|tests|docs)\\' -and
         ($_.Extension -in '.cs','.xaml','.csproj','.props','.ps1','.cmd','.iss','.xml','.png','.dwg' -or $_.Name -in 'LICENSE','THIRD-PARTY-NOTICES.md')
     } | Sort-Object FullName
     $taskManifest = foreach ($taskFile in $taskInputs) {
