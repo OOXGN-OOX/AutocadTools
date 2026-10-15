@@ -35,8 +35,8 @@ namespace AutocadTools.Commands
 
         #region Command Entry Point
 
-        [CommandMethod("AUTONUM", CommandFlags.UsePickSet | CommandFlags.Modal)]
-        [CommandMethod("НУМ", CommandFlags.UsePickSet | CommandFlags.Modal)]
+        [CommandMethod("ATNUM", CommandFlags.UsePickSet | CommandFlags.Modal)]
+        [CommandMethod("АТНУМ", CommandFlags.UsePickSet | CommandFlags.Modal)]
         public void ExecuteAutoNum()
         {
             var doc = Application.DocumentManager.MdiActiveDocument;
@@ -47,29 +47,33 @@ namespace AutocadTools.Commands
 
             try
             {
-                // Загружаем настройки
                 var settings = LoadSettings(ed);
-
-                // Показываем диалог настроек
-                var viewModel = new AutoNumSettingsViewModel();
-                bool dialogAccepted = ShowSettingsDialog(doc, viewModel, ed, settings);
-
-                if (!dialogAccepted)
+                var implied = ed.SelectImplied();
+                var preselected = implied.Status == PromptStatus.OK && implied.Value.Count > 0 ? implied.Value.GetObjectIds() : null;
+                while (true)
                 {
-                    ed.WriteMessage("\nОтменено пользователем.");
-                    return;
+                    var options = new PromptIntegerOptions("\nНачальный номер или")
+                    {
+                        DefaultValue = settings.StartNumber, UseDefaultValue = true, AllowNegative = false
+                    };
+                    options.Keywords.Add("Settings", "Настройки", "Настройки");
+                    var result = ed.GetInteger(options);
+                    if (result.Status == PromptStatus.Keyword)
+                    {
+                        var viewModel = new AutoNumSettingsViewModel { Settings = settings };
+                        if (Application.ShowModalWindow(new AutoNumSettingsWindow(viewModel)) != true) return;
+                        settings = viewModel.Settings;
+                        settings.Save();
+                        continue;
+                    }
+                    if (result.Status != PromptStatus.OK) return;
+                    settings.StartNumber = result.Value;
+                    settings.Save();
+                    break;
                 }
-
-                settings = viewModel.Settings;
-                settings.Save();
-
-                // Получаем выборку объектов
-                var selectedObjects = GetSelection(ed, settings);
-                if (selectedObjects == null || selectedObjects.Count == 0)
-                {
-                    ed.WriteMessage("\nОбъекты не выбраны.");
-                    return;
-                }
+                var selectedObjects = preselected != null ? SelectionSet.FromObjectIds(preselected) : GetSelection(ed, settings);
+                if (selectedObjects == null || selectedObjects.Count == 0) return;
+                ed.SetImpliedSelection(Array.Empty<ObjectId>());
 
                 // Выполняем нумерацию
                 int numberedCount = ProcessNumbering(db, ed, selectedObjects, settings);
@@ -95,29 +99,6 @@ namespace AutocadTools.Commands
             {
                 ed.WriteMessage($"\nПредупреждение: не удалось загрузить настройки. {ex.Message}");
                 return new AutoNumSettings();
-            }
-        }
-
-        private bool ShowSettingsDialog(Document doc, AutoNumSettingsViewModel viewModel, Editor ed, AutoNumSettings fallbackSettings)
-        {
-            try
-            {
-                using (doc.LockDocument())
-                {
-                    var window = new AutoNumSettingsWindow(viewModel);
-                    return Application.ShowModalWindow(window) == true;
-                }
-            }
-            catch (System.Exception ex)
-            {
-                ed.WriteMessage($"\nОшибка открытия окна настроек: {ex.Message}");
-                // Fallback: получаем настройки через командную строку
-                if (GetSettingsFromConsole(ed, fallbackSettings))
-                {
-                    fallbackSettings.Save();
-                    return true;
-                }
-                return false;
             }
         }
 
@@ -426,110 +407,6 @@ namespace AutocadTools.Commands
 
                 _ => items
             };
-        }
-
-        #endregion
-
-        #region Console Fallback
-
-        private bool GetSettingsFromConsole(Editor ed, AutoNumSettings settings)
-        {
-            // Prefix
-            var pr = ed.GetString(new PromptStringOptions("\nПрефикс [<none>]: ")
-            {
-                AllowSpaces = true,
-                DefaultValue = settings.Prefix ?? string.Empty,
-                UseDefaultValue = true
-            });
-            if (pr.Status != PromptStatus.OK) return false;
-            settings.Prefix = pr.StringResult ?? string.Empty;
-
-            // Suffix
-            pr = ed.GetString(new PromptStringOptions("\nСуффикс [<none>]: ")
-            {
-                AllowSpaces = true,
-                DefaultValue = settings.Suffix ?? string.Empty,
-                UseDefaultValue = true
-            });
-            if (pr.Status != PromptStatus.OK) return false;
-            settings.Suffix = pr.StringResult ?? string.Empty;
-
-            // Start number
-            var pir = ed.GetInteger(new PromptIntegerOptions($"\nНачальный номер <{settings.StartNumber}>: ")
-            {
-                DefaultValue = settings.StartNumber,
-                UseDefaultValue = true,
-                AllowNegative = false
-            });
-            if (pir.Status != PromptStatus.OK) return false;
-            settings.StartNumber = pir.Value;
-
-            // Step
-            pir = ed.GetInteger(new PromptIntegerOptions($"\nШаг <{settings.Step}>: ")
-            {
-                DefaultValue = settings.Step,
-                UseDefaultValue = true,
-                AllowNegative = false
-            });
-            if (pir.Status != PromptStatus.OK) return false;
-            settings.Step = pir.Value;
-
-            // Digits
-            pir = ed.GetInteger(new PromptIntegerOptions($"\nКоличество знаков (0=без заполнения) <{settings.Digits}>: ")
-            {
-                DefaultValue = settings.Digits,
-                UseDefaultValue = true,
-                AllowNegative = false
-            });
-            if (pir.Status != PromptStatus.OK) return false;
-            settings.Digits = pir.Value;
-
-            // Order
-            var pko = new PromptKeywordOptions($"\nПорядок [Pick/Geometric] <{settings.Order}>: ");
-            pko.Keywords.Add("Pick");
-            pko.Keywords.Add("Geometric");
-            pko.Keywords.Default = settings.Order.ToString();
-            pko.AllowNone = true;
-            pr = ed.GetKeywords(pko);
-            if (pr.Status == PromptStatus.OK)
-            {
-                settings.Order = pr.StringResult == "Geometric"
-                    ? AutoNumSettings.NumberingOrder.Geometric
-                    : AutoNumSettings.NumberingOrder.Pick;
-            }
-
-            // Mode
-            pko = new PromptKeywordOptions($"\nРежим [Text/MLeader/Attribute] <{settings.Mode}>: ");
-            pko.Keywords.Add("Text");
-            pko.Keywords.Add("MLeader");
-            pko.Keywords.Add("Attribute");
-            pko.Keywords.Default = settings.Mode.ToString();
-            pko.AllowNone = true;
-            pr = ed.GetKeywords(pko);
-            if (pr.Status == PromptStatus.OK)
-            {
-                settings.Mode = pr.StringResult switch
-                {
-                    "MLeader" => AutoNumSettings.NumberingMode.MLeader,
-                    "Attribute" => AutoNumSettings.NumberingMode.Attribute,
-                    _ => AutoNumSettings.NumberingMode.Text
-                };
-            }
-
-            // Attribute tag
-            if (settings.Mode == AutoNumSettings.NumberingMode.Attribute)
-            {
-                pr = ed.GetString(new PromptStringOptions($"\nТег атрибута <{settings.AttributeTag}>: ")
-                {
-                    DefaultValue = settings.AttributeTag,
-                    UseDefaultValue = true,
-                    AllowSpaces = false
-                });
-                if (pr.Status != PromptStatus.OK) return false;
-                settings.AttributeTag = pr.StringResult;
-            }
-
-            return true;
         }
 
         #endregion

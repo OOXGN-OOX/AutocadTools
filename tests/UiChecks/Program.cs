@@ -225,7 +225,46 @@ namespace UiChecks
                     using (var file = File.Create(Path.Combine(output, $"Signature-{scale * 100:0}" + (compact ? "-compact" : "") + ".png"))) encoder.Save(file);
                     dialog.Close(); count++;
                 }
-                Console.WriteLine($"PASS: {count} WPF renders, 100% / 150%, default / minimum dimensions; signature ink/cropping, combo boxes, command label fit; 17 vector icons.");
+                foreach (double scale in new[] { 1.0, 1.5 })
+                foreach (bool compact in new[] { false, true })
+                {
+                    string pgp = Path.Combine(output, "ui-aliases.pgp");
+                    File.WriteAllText(pgp, "; PGP fixture\nL, *LINE\nМК, *COPY\n");
+                    var aliases = new AutocadTools.Services.CommandAliases(pgp);
+                    aliases.Suggest();
+                    var dialog = new CommandAliasesWindow(aliases);
+                    dialog.Show();
+                    if (compact) { dialog.Width = dialog.MinWidth; dialog.Height = dialog.MinHeight; }
+                    dialog.UpdateLayout();
+                    var grid = Descendants(dialog).OfType<DataGrid>().Single();
+                    if (grid.Columns[0].ActualWidth < 230) throw new Exception("Tool names column collapsed.");
+                    if (grid.Items.Count != 18 || grid.Columns.Count != 4) throw new Exception("Incomplete bilingual command catalog.");
+                    var search = Descendants(dialog).OfType<TextBox>().First(t => (string)t.ToolTip == "Поиск по названию или команде");
+                    search.Text = "штамп"; dialog.UpdateLayout();
+                    if (grid.Items.Count != 1) throw new Exception("Russian command search failed.");
+                    search.Text = "atmcop"; dialog.UpdateLayout();
+                    if (grid.Items.Count != 1) throw new Exception("English command search failed.");
+                    search.Text = ""; dialog.UpdateLayout();
+                    var row = aliases.Rows.First(r => r.Command.English == "ATMCOPY");
+                    row.Aliases = "МК"; dialog.UpdateLayout();
+                    var apply = Descendants(dialog).OfType<Button>().Single(b => b.Content as string == "Применить");
+                    if (apply.IsEnabled) throw new Exception("PGP conflict did not disable Apply.");
+                    row.Aliases = "КП"; dialog.UpdateLayout();
+                    if (!apply.IsEnabled) throw new Exception("Valid alias did not enable Apply.");
+                    var surface = (FrameworkElement)VisualTreeHelper.GetChild(dialog, 0);
+                    foreach (var button in Descendants(dialog).OfType<Button>().Where(b => b.IsVisible && b.Content is string))
+                    {
+                        var bounds = button.TransformToAncestor(surface).TransformBounds(new Rect(button.RenderSize));
+                        if (bounds.Bottom > surface.ActualHeight + 1 || bounds.Right > surface.ActualWidth + 1)
+                            throw new Exception("Alias action outside window: " + button.Content);
+                    }
+                    var render = new RenderTargetBitmap((int)(surface.ActualWidth * scale), (int)(surface.ActualHeight * scale), 96 * scale, 96 * scale, PixelFormats.Pbgra32);
+                    render.Render(surface);
+                    var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(render));
+                    using (var file = File.Create(Path.Combine(output, $"CommandAliases-{scale * 100:0}" + (compact ? "-compact" : "") + ".png"))) encoder.Save(file);
+                    dialog.Close(); count++;
+                }
+                Console.WriteLine($"PASS: {count} WPF renders, 100% / 150%, default / minimum dimensions; signature ink/cropping, combo boxes, command label fit; 18 vector icons.");
                 app.Shutdown();
                 return 0;
             }

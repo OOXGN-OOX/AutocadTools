@@ -15,7 +15,8 @@ namespace AutocadTools.Commands
     {
         private static SumLengthWindow _window;
 
-        [CommandMethod("SUMLENGTH")]
+        [CommandMethod("ATSUM", CommandFlags.UsePickSet | CommandFlags.Modal)]
+        [CommandMethod("АТСУММА", CommandFlags.UsePickSet | CommandFlags.Modal)]
         public void ShowWindow()
         {
             // Если окно уже открыто - просто активируем его

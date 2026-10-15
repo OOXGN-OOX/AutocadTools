@@ -9,7 +9,8 @@ namespace AutocadTools.Commands
 {
     public sealed class BlockExportCommand
     {
-        [CommandMethod("AUTOCADTOOLS_BLOCKS_STAGE1", CommandFlags.Modal)]
+        [CommandMethod("ATPLOTSETUP", CommandFlags.Modal)]
+        [CommandMethod("АТНАСТРОЙКАПЕЧАТИ", CommandFlags.Modal)]
         public void Run()
         {
             var doc = AcadApp.DocumentManager.MdiActiveDocument;

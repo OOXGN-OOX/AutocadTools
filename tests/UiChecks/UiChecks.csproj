@@ -11,6 +11,9 @@
     <Compile Include="..\..\Views\UiTheme.cs" Link="UiTheme.cs"/>
     <Compile Include="..\..\Views\ToolIcons.cs" Link="ToolIcons.cs"/>
     <Compile Include="..\..\Views\SignatureWindow.cs" Link="SignatureWindow.cs"/>
+    <Compile Include="..\..\Views\CommandAliasesWindow.cs" Link="CommandAliasesWindow.cs"/>
+    <Compile Include="..\..\Services\CommandAliases.cs" Link="CommandAliases.cs"/>
+    <Compile Include="..\..\Services\CommandCatalog.cs" Link="CommandCatalog.cs"/>
     <Compile Include="..\..\Models\StampSignature.cs" Link="StampSignature.cs"/>
     <Compile Include="..\..\Models\StampTypography.cs" Link="StampTypography.cs"/>
     <Compile Include="..\..\ViewModels\BaseViewModel.cs" Link="BaseViewModel.cs"/>

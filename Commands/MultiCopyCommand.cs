@@ -18,7 +18,8 @@ namespace AutocadTools.Commands
         private static int _segments = 5;
         private static bool _divide;
 
-        [CommandMethod("MULTICOPY", CommandFlags.UsePickSet | CommandFlags.Modal)]
+        [CommandMethod("ATMCOPY", CommandFlags.UsePickSet | CommandFlags.Modal)]
+        [CommandMethod("АТМКОП", CommandFlags.UsePickSet | CommandFlags.Modal)]
         public void ExecuteMultiCopy()
         {
             var doc = Application.DocumentManager.MdiActiveDocument;
@@ -38,8 +39,8 @@ namespace AutocadTools.Commands
                 var ids = selection.Value.GetObjectIds();
                 ed.SetImpliedSelection(Array.Empty<ObjectId>());
                 if (!ReadParameters(ed)) return;
-                var options = new PromptPointOptions("\nУкажите базовую точку или: ");
-                options.Keywords.Add("Primitive", "Примитив", "Примитив");
+                var options = new PromptPointOptions("\nУкажите базовую точку или");
+                options.Keywords.Add("Curve", "Кривая", "Кривая");
                 var point = ed.GetPoint(options);
                 Vector3d[] offsets;
                 if (point.Status == PromptStatus.Keyword)
@@ -81,13 +82,13 @@ namespace AutocadTools.Commands
             {
                 if (_divide)
                 {
-                    var options = new PromptIntegerOptions("\nВведите число сегментов или: ")
+                    var options = new PromptIntegerOptions("\nКоличество сегментов или")
                     {
                         AllowNegative = false, AllowZero = false,
                         LowerLimit = 1, UpperLimit = MultiCopyLayout.MaximumCopies,
                         DefaultValue = _segments, UseDefaultValue = true
                     };
-                    options.Keywords.Add("Measure", "Разметить", "Разметить");
+                    options.Keywords.Add("Step", "Шаг", "Шаг");
                     var result = ed.GetInteger(options);
                     if (result.Status == PromptStatus.Keyword) { _divide = false; continue; }
                     if (result.Status != PromptStatus.OK) return false;
@@ -95,12 +96,12 @@ namespace AutocadTools.Commands
                 }
                 else
                 {
-                    var options = new PromptDistanceOptions("\nУкажите расстояние или: ")
+                    var options = new PromptDistanceOptions("\nШаг копирования в единицах чертежа или")
                     {
                         AllowNegative = false, AllowZero = false,
                         DefaultValue = _spacing, UseDefaultValue = true
                     };
-                    options.Keywords.Add("Divide", "Поделить", "Поделить");
+                    options.Keywords.Add("Count", "Количество", "Количество");
                     var result = ed.GetDistance(options);
                     if (result.Status == PromptStatus.Keyword) { _divide = true; continue; }
                     if (result.Status != PromptStatus.OK) return false;

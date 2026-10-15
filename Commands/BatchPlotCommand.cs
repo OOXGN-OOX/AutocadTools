@@ -18,7 +18,8 @@ namespace AutocadTools.Commands
 {
     public class BatchPlotCommand
     {
-        [CommandMethod("AUTOCADTOOLS_BATCHPLOT", CommandFlags.Modal)]
+        [CommandMethod("ATPLOT", CommandFlags.Modal)]
+        [CommandMethod("АТПЕЧАТЬ", CommandFlags.Modal)]
         public void Execute()
         {
             try
@@ -58,12 +59,6 @@ namespace AutocadTools.Commands
                 doc?.Editor.WriteMessage($"\n[Autocad Tools Error] BatchPlotCommand failed: {ex.Message}\n");
                 doc?.Editor.WriteMessage($"[Autocad Tools Error] Stack trace: {ex.StackTrace}\n");
             }
-        }
-
-        [CommandMethod("WPLOT", CommandFlags.Modal)]
-        public void ExecuteShort()
-        {
-            Execute();
         }
     }
 }

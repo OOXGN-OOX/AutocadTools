@@ -56,7 +56,7 @@ public class Checks
 
     private static TransformCalculator.TransformationParams Parameters(Point3d b, out Point3d source, out Point3d target)
     {
-        // Matches the swapped three point pairs used by Align_Den.
+        // Matches the swapped three point pairs used by ATISO.
         source = b + new Vector3d(0, 10, 0);
         target = b + new Vector3d(10 / Math.Sqrt(2), 10 / Math.Sqrt(2), 0);
         return new TransformCalculator().CalculateTransformation(source, b + new Vector3d(-20, 0, 0), b,

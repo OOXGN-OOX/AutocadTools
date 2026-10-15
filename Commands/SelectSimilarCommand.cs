@@ -22,7 +22,8 @@ namespace AutocadTools.Commands
 {
     public class SelectSimilarCommand
     {
-        [CommandMethod("WSELECT")]
+        [CommandMethod("ATSIMILAR", CommandFlags.UsePickSet | CommandFlags.Modal | CommandFlags.Redraw)]
+        [CommandMethod("АТПОДОБНЫЕ", CommandFlags.UsePickSet | CommandFlags.Modal | CommandFlags.Redraw)]
         public void Execute()
         {
             var doc = AcadApp.DocumentManager.MdiActiveDocument;

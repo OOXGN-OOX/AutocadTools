@@ -3,7 +3,7 @@
      OOXGN - Copyright (c) 2026. All rights reserved.
      Author: OOXGN | Project: AutocadTools
      ======================================================================== -->
-<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:local="clr-namespace:AutocadTools.Views" x:Class="AutocadTools.Views.AlignSkewWindow" mc:Ignorable="d" Title="Настройки выравнивания (Align_Den)" SizeToContent="Height" Width="440" WindowStartupLocation="CenterScreen" ResizeMode="NoResize" Style="{DynamicResource ToolWindow}">
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:local="clr-namespace:AutocadTools.Views" x:Class="AutocadTools.Views.AlignSkewWindow" mc:Ignorable="d" Title="Аксонометрия" SizeToContent="Height" Width="440" WindowStartupLocation="CenterScreen" ResizeMode="NoResize" Style="{DynamicResource ToolWindow}">
     <!-- Подключаем ресурсы (Конвертер) -->
     <Window.Resources>
         <ResourceDictionary>

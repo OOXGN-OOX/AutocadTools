@@ -22,7 +22,8 @@ namespace AutocadTools.Commands
         // Статическая ссылка для реализации Singleton (одно окно)
         private static StampWindow _stampWindow;
 
-        [CommandMethod("AUTOCADTOOLS_STAMP", CommandFlags.Session)]
+        [CommandMethod("ATSTAMP", CommandFlags.Session)]
+        [CommandMethod("АТШТАМП", CommandFlags.Session)]
         // CommandFlags.Session важно для Modeless Window
         public void ShowStampWindow()
         {

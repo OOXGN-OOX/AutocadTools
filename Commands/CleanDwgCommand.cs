@@ -18,7 +18,8 @@ namespace AutocadTools.Commands
 {
     public class CleanDwgCommand
     {
-        [CommandMethod("CLEANDWG")]
+        [CommandMethod("ATCLEAN")]
+        [CommandMethod("АТОЧИСТКА")]
         public void Execute()
         {
             var doc = AcadApp.DocumentManager.MdiActiveDocument;

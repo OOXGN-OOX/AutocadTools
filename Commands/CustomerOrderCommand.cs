@@ -16,7 +16,8 @@ namespace AutocadTools.Commands
 {
     public sealed class CustomerOrderCommand
     {
-        [CommandMethod("AUTOCADTOOLS_CUSTOMERORDER")]
+        [CommandMethod("ATHANDOFF")]
+        [CommandMethod("АТПЕРЕДАЧА")]
         public void Run()
         {
             var doc = AcadApp.DocumentManager.MdiActiveDocument;

@@ -7,7 +7,8 @@ namespace AutocadTools.Commands
 {
     public sealed class CheckUpdatesCommand
     {
-        [CommandMethod("AUTOCADTOOLS_CHECKUPDATES")]
+        [CommandMethod("ATUPDATE")]
+        [CommandMethod("АТОБНОВЛЕНИЯ")]
         public void Run() => UpdateCheckService.Check(true);
     }
 }

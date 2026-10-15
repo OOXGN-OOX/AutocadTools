@@ -20,7 +20,8 @@ namespace AutocadTools.Commands
 {
     public class PlanPrepCommand
     {
-        [CommandMethod("PLANPREP")]
+        [CommandMethod("ATPLAN", CommandFlags.UsePickSet | CommandFlags.Modal)]
+        [CommandMethod("АТПЛАН", CommandFlags.UsePickSet | CommandFlags.Modal)]
         public void Execute()
         {
             var doc = AcadApp.DocumentManager.MdiActiveDocument;
@@ -32,7 +33,8 @@ namespace AutocadTools.Commands
                 // 1. Выбор области
                 PromptSelectionOptions pso = new PromptSelectionOptions();
                 pso.MessageForAdding = "\nВыберите область для подготовки плана: ";
-                PromptSelectionResult psr = ed.GetSelection(pso);
+                var psr = ed.SelectImplied();
+                if (psr.Status != PromptStatus.OK || psr.Value.Count == 0) psr = ed.GetSelection(pso);
 
                 if (psr.Status != PromptStatus.OK) return;
 

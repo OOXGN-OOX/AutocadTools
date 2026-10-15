@@ -150,10 +150,10 @@ public class Checks
             {
                 var space = (BlockTableRecord)tr.GetObject(db.CurrentSpaceId, OpenMode.ForRead);
                 var circles = space.Cast<ObjectId>().Select(id => tr.GetObject(id, OpenMode.ForRead)).OfType<Circle>().OrderBy(c => c.Center.X).ToArray();
-                Assert(circles.Length == 4, "Actual MULTICOPY command count");
+                Assert(circles.Length == 4, "ATMCOPY curve command count");
                 for (int i = 0; i < circles.Length; i++) Near(circles[i].Center - Point3d.Origin, new Vector3d(i * 30, 0, 0));
             }
-            File.AppendAllText(Log, "Scripted Divide/Primitive workflow passed.\n");
+            File.AppendAllText(Log, "Scripted Count/Curve workflow passed.\n");
         }
         catch (System.Exception ex) { File.AppendAllText(Log, "MULTICOPY_FAIL: " + ex + "\n"); }
     }
@@ -171,11 +171,11 @@ public class Checks
             {
                 var space = (BlockTableRecord)tr.GetObject(db.CurrentSpaceId, OpenMode.ForRead);
                 var circles = space.Cast<ObjectId>().Select(id => tr.GetObject(id, OpenMode.ForRead)).OfType<Circle>().OrderBy(c => c.Center.X).ToArray();
-                Assert(circles.Length == 7, "Actual measure command count");
+                Assert(circles.Length == 7, "АТМКОП step command count");
                 var expected = new[] { 0, 30, 30, 60, 60, 90, 90 };
                 for (int i = 0; i < circles.Length; i++) Near(circles[i].Center - Point3d.Origin, new Vector3d(expected[i], 0, 0));
             }
-            File.AppendAllText(Log, "MULTICOPY_PASS: services; scripted Divide/Primitive and Measure/two-point workflows.\n");
+            File.AppendAllText(Log, "MULTICOPY_PASS: services; English/Russian command names, Count/Curve and Step/two-point workflows.\n");
         }
         catch (System.Exception ex) { File.AppendAllText(Log, "MULTICOPY_FAIL: " + ex + "\n"); }
     }

@@ -15,7 +15,8 @@ namespace AutocadTools.Commands
 {
     public sealed class TableExcelCommand
     {
-        [CommandMethod("AUTOCADTOOLS_TABLEEXCEL")]
+        [CommandMethod("ATEXCEL", CommandFlags.UsePickSet | CommandFlags.Modal)]
+        [CommandMethod("АТЭКСЕЛЬ", CommandFlags.UsePickSet | CommandFlags.Modal)]
         public void Run()
         {
             var doc = AcadCoreApp.DocumentManager.MdiActiveDocument;
@@ -25,15 +26,26 @@ namespace AutocadTools.Commands
 
             try
             {
-                var peo = new PromptEntityOptions("\nВыберите таблицу AutoCAD: ");
-                peo.SetRejectMessage("\nНужен объект TABLE.");
-                peo.AddAllowedClass(typeof(Table), exactMatch: false);
-
-                var per = ed.GetEntity(peo);
-                if (per.Status != PromptStatus.OK) return;
-
+                ObjectId tableId = ObjectId.Null;
+                var selection = ed.SelectImplied();
+                if (selection.Status == PromptStatus.OK && selection.Value.Count == 1)
+                {
+                    var id = selection.Value.GetObjectIds()[0];
+                    using (var tr = doc.Database.TransactionManager.StartTransaction())
+                        if (tr.GetObject(id, OpenMode.ForRead) is Table) tableId = id;
+                }
+                if (tableId.IsNull)
+                {
+                    var options = new PromptEntityOptions("\nВыберите таблицу AutoCAD: ");
+                    options.SetRejectMessage("\nВыберите таблицу TABLE.");
+                    options.AddAllowedClass(typeof(Table), false);
+                    var result = ed.GetEntity(options);
+                    if (result.Status != PromptStatus.OK) return;
+                    tableId = result.ObjectId;
+                }
+                ed.SetImpliedSelection(Array.Empty<ObjectId>());
                 var service = new TableExcelService();
-                service.ExportOpenAndAutoImport(doc, per.ObjectId);
+                service.ExportOpenAndAutoImport(doc, tableId);
             }
             catch (System.Exception ex)
             {

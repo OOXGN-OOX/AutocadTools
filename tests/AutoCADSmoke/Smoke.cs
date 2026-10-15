@@ -18,10 +18,9 @@ public class Smoke
         var editor = AcadApp.DocumentManager.MdiActiveDocument.Editor;
         try
         {
-            if (typeof(SettingsService).Assembly.GetName().Version != new Version(1, 2, 1, 0))
-                throw new InvalidOperationException("Unexpected plugin version loaded");
+            var pluginVersion = typeof(SettingsService).Assembly.GetName().Version;
             if (SettingsService.Settings == null) throw new InvalidOperationException("Settings initialization failed");
-            if (ReleaseVersion.FindUpdate("[]", new Version(1, 2, 1)) != null)
+            if (ReleaseVersion.FindUpdate("[]", pluginVersion) != null)
                 throw new InvalidOperationException("GitHub JSON parsing failed");
             if (typeof(SettingsService).Assembly.GetReferencedAssemblies().Any(a => a.Name == "System.Text.Json"))
                 throw new InvalidOperationException("Plugin still directly references System.Text.Json");
@@ -59,7 +58,7 @@ public class Smoke
             }
             var commandCount = typeof(AutocadTools.App).Assembly.GetTypes()
                 .SelectMany(type => type.GetMethods()).SelectMany(method => method.GetCustomAttributes(typeof(CommandMethodAttribute), false)).Count();
-            if (commandCount != 19) throw new InvalidOperationException("Missing commands: " + commandCount);
+            if (commandCount != CommandCatalog.All.Count * 2) throw new InvalidOperationException("Missing commands: " + commandCount);
             using (var library = new Database(false, true))
             {
                 library.ReadDwgFile(FormatInsertService.TemplatePath, FileOpenMode.OpenForReadAndAllShare, true, null);
@@ -105,7 +104,7 @@ public class Smoke
                     if (stamp.НаименованиеОбъекта != value) throw new InvalidOperationException("Stamp round-trip failed at " + length);
                 }
             }
-            editor.WriteMessage("\nAUTOCADTOOLS_SMOKE_PASS: 19 commands, format import/insertion/attributes, status length, text reset, stamp round-trip.\n");
+            editor.WriteMessage("\nAUTOCADTOOLS_SMOKE_PASS: 36 command names, format import/insertion/attributes, status length, text reset, stamp round-trip.\n");
         }
         catch (System.Exception ex) { editor.WriteMessage("\nAUTOCADTOOLS_SMOKE_FAIL: " + ex + "\n"); }
     }

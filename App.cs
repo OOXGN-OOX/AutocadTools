@@ -20,11 +20,16 @@ using WpfOrientation = System.Windows.Controls.Orientation;
 // Псевдоним для Application
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 
+#if !LIVE_PREVIEW
 [assembly: ExtensionApplication(typeof(AutocadTools.App))]
+#endif
 
 namespace AutocadTools
 {
-    public class App : IExtensionApplication
+    public class App
+#if !LIVE_PREVIEW
+        : IExtensionApplication
+#endif
     {
         private const string RibbonTabId = "AUTOCAD_TOOLS_TAB";
         private const string RibbonTabTitle = "Autocad Tools";
@@ -112,7 +117,7 @@ namespace AutocadTools
         {
             var doc = AcadApp.DocumentManager.MdiActiveDocument;
             if (doc != null)
-                doc.SendStringToExecute("WSELECT ", true, false, false);
+                doc.SendStringToExecute("ATSIMILAR ", true, false, false);
         }
 
         private void CreateRibbon()
@@ -152,13 +157,13 @@ namespace AutocadTools
             var toolsPanel = new RibbonPanel { Source = toolsPanelSource };
             tab.Panels.Add(toolsPanel);
 
-            AddButton(toolsPanelSource, "Преобразовать\nв аксонометрию", "Align_Den");
-            AddButton(toolsPanelSource, "Автонумерация", "AUTONUM");
-            AddButton(toolsPanelSource, "Выбор по\nобразцу", "WSELECT");
-            AddButton(toolsPanelSource, "Сумма\nдлин", "SUMLENGTH");
-            AddButton(toolsPanelSource, "Мульти\nкопирование", "MULTICOPY");
-            AddButton(toolsPanelSource, "Подготовка\nпланов", "PLANPREP");
-            AddButton(toolsPanelSource, "Таблица\nExcel", "AUTOCADTOOLS_TABLEEXCEL");
+            AddButton(toolsPanelSource, "Преобразовать\nв аксонометрию", "ATISO");
+            AddButton(toolsPanelSource, "Автонумерация", "ATNUM");
+            AddButton(toolsPanelSource, "Выбор по\nобразцу", "ATSIMILAR");
+            AddButton(toolsPanelSource, "Сумма\nдлин", "ATSUM");
+            AddButton(toolsPanelSource, "Мульти\nкопирование", "ATMCOPY");
+            AddButton(toolsPanelSource, "Подготовка\nпланов", "ATPLAN");
+            AddButton(toolsPanelSource, "Таблица\nExcel", "ATEXCEL");
 
 
             // =========================
@@ -168,9 +173,9 @@ namespace AutocadTools
             var cleanPanel = new RibbonPanel { Source = cleanPanelSource };
             tab.Panels.Add(cleanPanel);
 
-            AddButton(cleanPanelSource, "Очистка\nчертежа", "CLEANDWG");
-            AddButton(cleanPanelSource, "Очистить\nневыбранные", "CLEANUNSELECTED");
-            AddButton(cleanPanelSource, "Сброс\nтекста", "STRIPTEXT");
+            AddButton(cleanPanelSource, "Очистка\nчертежа", "ATCLEAN");
+            AddButton(cleanPanelSource, "Удалить\nневыбранные", "ATDELETEOTHERS");
+            AddButton(cleanPanelSource, "Сброс\nтекста", "ATTEXTRESET");
 
             // =========================
             // ПАНЕЛЬ: ВЫПУСК
@@ -179,11 +184,11 @@ namespace AutocadTools
             var releasePanel = new RibbonPanel { Source = releasePanelSource };
             tab.Panels.Add(releasePanel);
 
-            AddButton(releasePanelSource, "Штамп", "AUTOCADTOOLS_STAMP");
-            AddButton(releasePanelSource, "Вставить\nформатку", "AUTOCADTOOLS_INSERTFORMAT");
-            AddButton(releasePanelSource, "Печать", "AUTOCADTOOLS_BATCHPLOT");
-            AddButton(releasePanelSource, "Подготовить\nвсе блоки", "AUTOCADTOOLS_BLOCKS_STAGE1");
-            AddButton(releasePanelSource, "Сформировать\nзаказчику", "AUTOCADTOOLS_CUSTOMERORDER");
+            AddButton(releasePanelSource, "Штамп", "ATSTAMP");
+            AddButton(releasePanelSource, "Вставить\nформатку", "ATFRAME");
+            AddButton(releasePanelSource, "Печать", "ATPLOT");
+            AddButton(releasePanelSource, "Настроить\nпечать блоков", "ATPLOTSETUP");
+            AddButton(releasePanelSource, "Подготовить\nдля передачи", "ATHANDOFF");
 
             // =========================
             // ПАНЕЛЬ: СПРАВКА
@@ -192,8 +197,9 @@ namespace AutocadTools
             var helpPanel = new RibbonPanel { Source = helpPanelSource };
             tab.Panels.Add(helpPanel);
 
-            AddButton(helpPanelSource, "О программе", "AUTOCADTOOLS_INFO");
-            AddButton(helpPanelSource, "Проверить\nобновления", "AUTOCADTOOLS_CHECKUPDATES");
+            AddButton(helpPanelSource, "Команды и\nсокращения", "ATALIASES");
+            AddButton(helpPanelSource, "О программе", "ATINFO");
+            AddButton(helpPanelSource, "Проверить\nобновления", "ATUPDATE");
         }
 
         private void AddButton(RibbonPanelSource source, string text, string commandName)
@@ -207,6 +213,7 @@ namespace AutocadTools
                 Orientation = WpfOrientation.Vertical,
                 LargeImage = Views.ToolIcons.Create(commandName, _darkRibbon ?? true),
                 Tag = commandName,
+                ToolTip = Services.CommandCatalog.Find(commandName)?.ToolTip,
                 CommandHandler = new RibbonCommand(commandName)
             };
             source.Items.Add(button);

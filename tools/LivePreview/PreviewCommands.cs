@@ -123,7 +123,9 @@ namespace AutocadTools.LivePreview
             {
                 if (!EnsureCurrent()) return;
                 var methods = _assembly.GetTypes().SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static));
-                var method = methods.Single(m => m.GetCustomAttributes<CommandMethodAttribute>().Any(a => a.GlobalName == command));
+                var method = methods.Single(m => m.GetCustomAttributesData().Any(a =>
+                    (a.AttributeType == typeof(CommandMethodAttribute) || a.AttributeType.FullName == "AutocadTools.LivePreview.CommandEntryAttribute") &&
+                    a.ConstructorArguments.Count > 0 && string.Equals(a.ConstructorArguments[0].Value as string, command, StringComparison.OrdinalIgnoreCase)));
                 object instance = null;
                 if (!method.IsStatic && !Instances.TryGetValue(method.DeclaringType, out instance))
                     Instances[method.DeclaringType] = instance = Activator.CreateInstance(method.DeclaringType);
@@ -132,10 +134,10 @@ namespace AutocadTools.LivePreview
             catch (System.Exception ex) { Message((ex is TargetInvocationException ? ex.InnerException : ex)?.ToString()); }
         }
 
-        [CommandMethod("AT_TEST_MULTICOPY", CommandFlags.UsePickSet | CommandFlags.Modal)] public void MultiCopy() => Invoke("MULTICOPY");
-        [CommandMethod("AT_TEST_STAMP", CommandFlags.Session)] public void Stamp() => Invoke("AUTOCADTOOLS_STAMP");
-        [CommandMethod("AT_TEST_FORMAT", CommandFlags.Modal)] public void Format() => Invoke("AUTOCADTOOLS_INSERTFORMAT");
-        [CommandMethod("AT_TEST_ALIGN", CommandFlags.UsePickSet | CommandFlags.Modal)] public void Align() => Invoke("Align_Den");
+        [CommandMethod("AT_TEST_MULTICOPY", CommandFlags.UsePickSet | CommandFlags.Modal)] public void MultiCopy() => Invoke("ATMCOPY");
+        [CommandMethod("AT_TEST_STAMP", CommandFlags.Session)] public void Stamp() => Invoke("ATSTAMP");
+        [CommandMethod("AT_TEST_FORMAT", CommandFlags.Modal)] public void Format() => Invoke("ATFRAME");
+        [CommandMethod("AT_TEST_ALIGN", CommandFlags.UsePickSet | CommandFlags.Modal)] public void Align() => Invoke("ATISO");
         [CommandMethod("AT_TEST_INFO")] public void Info() { if (EnsureCurrent()) Message(_loadedPath); }
 
         private static readonly (string Label, string Command)[] Buttons = {

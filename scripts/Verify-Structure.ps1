@@ -10,8 +10,8 @@ $sourceFiles = Get-ChildItem -LiteralPath $root -Recurse -File | Where-Object { 
 $commands = foreach ($file in $sourceFiles | Where-Object Extension -eq '.cs') {
     foreach ($match in [regex]::Matches([IO.File]::ReadAllText($file.FullName), 'CommandMethod\("([^"]+)"')) { $match.Groups[1].Value }
 }
-$expected = @('Align_Den','AUTONUM','НУМ','WSELECT','SUMLENGTH','MULTICOPY','PLANPREP','CLEANDWG','CLEANUNSELECTED','STRIPTEXT','AUTOCADTOOLS_STAMP','AUTOCADTOOLS_BATCHPLOT','WPLOT','AUTOCADTOOLS_CUSTOMERORDER','AUTOCADTOOLS_TABLEEXCEL','AUTOCADTOOLS_BLOCKS_STAGE1','AUTOCADTOOLS_INFO','AUTOCADTOOLS_CHECKUPDATES','AUTOCADTOOLS_INSERTFORMAT')
-if (@($expected | Where-Object { $_ -notin $commands }).Count -or @($commands | Group-Object | Where-Object Count -gt 1).Count) { throw 'Missing or duplicate commands.' }
+$expected = @('ATISO','АТАКСО','ATNUM','АТНУМ','ATSIMILAR','АТПОДОБНЫЕ','ATSUM','АТСУММА','ATMCOPY','АТМКОП','ATPLAN','АТПЛАН','ATCLEAN','АТОЧИСТКА','ATDELETEOTHERS','АТУДАЛИТЬОСТАЛЬНОЕ','ATTEXTRESET','АТСБРОСТЕКСТА','ATFRAME','АТРАМКА','ATSTAMP','АТШТАМП','ATPLOT','АТПЕЧАТЬ','ATPLOTSETUP','АТНАСТРОЙКАПЕЧАТИ','ATHANDOFF','АТПЕРЕДАЧА','ATEXCEL','АТЭКСЕЛЬ','ATINFO','АТИНФО','ATUPDATE','АТОБНОВЛЕНИЯ','ATALIASES','АТСОКРАЩЕНИЯ')
+if (@($commands | Where-Object { $_ -notin $expected }).Count -or @($expected | Where-Object { $_ -notin $commands }).Count -or @($commands | Group-Object | Where-Object Count -gt 1).Count) { throw 'Missing or duplicate commands.' }
 $xmlFiles = Get-ChildItem -LiteralPath $root -Recurse -File | Where-Object { $_.Extension -in '.xaml','.xml','.csproj','.props' -and $_.FullName -notmatch '\\(bin|obj|artifacts|tests|\.agents)\\' }
 foreach ($file in $xmlFiles) { $null = [xml][IO.File]::ReadAllText($file.FullName) }
 $app = [IO.File]::ReadAllText((Join-Path $root 'App.cs'))

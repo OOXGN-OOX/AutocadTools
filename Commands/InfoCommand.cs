@@ -13,7 +13,8 @@ namespace AutocadTools.Commands
 {
     public class InfoCommand
     {
-        [CommandMethod("AUTOCADTOOLS_INFO")]
+        [CommandMethod("ATINFO")]
+        [CommandMethod("АТИНФО")]
         public void Execute()
         {
             var window = new AboutWindow();

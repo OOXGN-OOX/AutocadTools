@@ -34,7 +34,8 @@ namespace AutocadTools.Commands
             _transformCalculator = new TransformCalculator();
         }
 
-        [CommandMethod("Align_Den", CommandFlags.UsePickSet | CommandFlags.Modal)]
+        [CommandMethod("ATISO", CommandFlags.UsePickSet | CommandFlags.Modal)]
+        [CommandMethod("АТАКСО", CommandFlags.UsePickSet | CommandFlags.Modal)]
         public void ExecuteAlignSkew()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;

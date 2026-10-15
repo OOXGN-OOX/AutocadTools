@@ -10,7 +10,8 @@ namespace AutocadTools.Commands
 {
     public sealed class InsertFormatCommand
     {
-        [CommandMethod("AUTOCADTOOLS_INSERTFORMAT", CommandFlags.Modal)]
+        [CommandMethod("ATFRAME", CommandFlags.Modal)]
+        [CommandMethod("АТРАМКА", CommandFlags.Modal)]
         public void Run()
         {
             var doc = AcadApp.DocumentManager.MdiActiveDocument;

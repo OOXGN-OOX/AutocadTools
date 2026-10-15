@@ -21,7 +21,7 @@ $taskScript = Join-Path $taskScratch 'checks.scr'
 $taskLog = Join-Path $taskScratch 'results.log'
 if (Test-Path -LiteralPath $taskLog) { Remove-Item -LiteralPath $taskLog }
 $taskDllForLisp = $taskDll.Replace('\', '/')
-[IO.File]::WriteAllText($taskScript, "(setvar `"SECURELOAD`" 0)`n(command `"_netload`" `"$taskDllForLisp`")`nMULTICOPY_CHECKS`nMULTICOPY_SEED`nMULTICOPY`n_Divide`n3`n_Primitive`n_Last`nMULTICOPY_VERIFY_COMMAND`nMULTICOPY_PRESELECT`nMULTICOPY`n_Measure`n30`n0,0`n100,0`nMULTICOPY_VERIFY_POINTS`nMULTICOPY_SEED_UCS`nMULTICOPY`n30`n10,20,3`n100,20,3`nMULTICOPY_VERIFY_UCS`n_QUIT`n_Y`n", [Text.Encoding]::ASCII)
+[IO.File]::WriteAllText($taskScript, "(setvar `"SECURELOAD`" 0)`n(command `"_netload`" `"$taskDllForLisp`")`nMULTICOPY_CHECKS`nMULTICOPY_SEED`nATMCOPY`n_Count`n3`n_Curve`n_Last`nMULTICOPY_VERIFY_COMMAND`nMULTICOPY_PRESELECT`nАТМКОП`n_Step`n30`n0,0`n100,0`nMULTICOPY_VERIFY_POINTS`nMULTICOPY_SEED_UCS`nАТМКОП`n30`n10,20,3`n100,20,3`nMULTICOPY_VERIFY_UCS`n_QUIT`n_Y`n", [Text.UTF8Encoding]::new($true))
 $taskProcess = Start-Process -FilePath $taskConsole -ArgumentList @('/s', ('"' + $taskScript + '"'), '/l', 'en-US') -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $taskScratch 'stdout.log') -RedirectStandardError (Join-Path $taskScratch 'stderr.log')
 if (!$taskProcess.WaitForExit(60000)) {
     Stop-Process -Id $taskProcess.Id -ErrorAction SilentlyContinue

@@ -6,6 +6,7 @@
     <AssemblyName Condition="'$(PreviewAssemblyName)' == ''">AutocadTools</AssemblyName>
     <AssemblyName Condition="'$(PreviewAssemblyName)' != ''">$(PreviewAssemblyName)</AssemblyName>
     <RootNamespace>AutocadTools</RootNamespace>
+    <DefineConstants Condition="'$(PreviewAssemblyName)' != ''">$(DefineConstants);LIVE_PREVIEW</DefineConstants>
     <Version>0.1.1</Version>
     <Product>Autocad Tools</Product>
     <Title>Autocad Tools</Title>
@@ -26,6 +27,7 @@
   <ItemGroup>
     <Compile Remove="tests\**\*.cs" />
     <Compile Remove="tools\**\*.cs" />
+    <Compile Include="tools\LivePreview\CommandEntry.cs" Condition="'$(PreviewAssemblyName)' != ''" />
     <Page Remove="tests\**\*.xaml" />
     <Page Remove="tools\**\*.xaml" />
     <PackageReference Include="itext7" Version="9.4.0" />

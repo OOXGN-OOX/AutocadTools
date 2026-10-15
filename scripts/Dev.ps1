@@ -1,6 +1,6 @@
-param(
+﻿param(
     [ValidateSet('Check','Test','Build','Preview')][string]$Mode = 'Check',
-    [ValidateSet('All','MultiCopy','Stamp','Updates','Pdf','UI')][string]$Suite = 'All',
+    [ValidateSet('All','MultiCopy','Stamp','Updates','Pdf','UI','Commands')][string]$Suite = 'All',
     [ValidateSet('2025','2026','2027')][string]$AutoCADVersion = '2026',
     [switch]$AutoCAD,
     [string]$DotnetPath
@@ -29,6 +29,9 @@ if ($Mode -eq 'Build') {
     Invoke-TaskDotnet @('build', (Join-Path $taskRoot 'AutocadTools.csproj'), '-c', 'Debug', "-p:AutoCADVersion=$AutoCADVersion")
     Write-Host 'Debug DLL ready. No distribution or Git operation was performed.'
     return
+}
+if ($Suite -in @('All','Commands')) {
+    Invoke-TaskDotnet @('run', '--project', (Join-Path $taskRoot 'tests\CommandChecks\CommandChecks.csproj'), '-c', 'Debug', '--', $taskRoot)
 }
 if ($Suite -in @('All','MultiCopy')) {
     Invoke-TaskDotnet @('run', '--project', (Join-Path $taskRoot 'tests\MultiCopyLayoutChecks\MultiCopyLayoutChecks.csproj'), '-c', 'Debug')

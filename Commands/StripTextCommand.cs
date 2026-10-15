@@ -22,7 +22,8 @@ namespace AutocadTools.Commands
 {
     public class StripTextCommand
     {
-        [CommandMethod("STRIPTEXT")]
+        [CommandMethod("ATTEXTRESET", CommandFlags.UsePickSet | CommandFlags.Modal)]
+        [CommandMethod("АТСБРОСТЕКСТА", CommandFlags.UsePickSet | CommandFlags.Modal)]
         public void Execute()
         {
             var doc = AcadApp.DocumentManager.MdiActiveDocument;
@@ -48,7 +49,8 @@ namespace AutocadTools.Commands
                 pso.MessageForAdding = "\nВыберите объекты для сброса текста: ";
                 pso.RejectObjectsOnLockedLayers = true;
 
-                PromptSelectionResult psr = ed.GetSelection(pso, filter);
+                var psr = ed.SelectImplied();
+                if (psr.Status != PromptStatus.OK || psr.Value.Count == 0) psr = ed.GetSelection(pso, filter);
 
                 if (psr.Status != PromptStatus.OK) return;
 

@@ -7,7 +7,6 @@
 
 // File: AutocadTools/Commands/CleanUnselectedCommand.cs
 using System.Collections.Generic;
-using System.Windows;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Runtime;
@@ -19,7 +18,8 @@ namespace AutocadTools.Commands
 {
     public class CleanUnselectedCommand
     {
-        [CommandMethod("CLEANUNSELECTED")]
+        [CommandMethod("ATDELETEOTHERS", CommandFlags.UsePickSet | CommandFlags.Modal)]
+        [CommandMethod("АТУДАЛИТЬОСТАЛЬНОЕ", CommandFlags.UsePickSet | CommandFlags.Modal)]
         public void Execute()
         {
             var doc = AcadApp.DocumentManager.MdiActiveDocument;
@@ -32,7 +32,8 @@ namespace AutocadTools.Commands
                 pso.MessageForAdding = "\nВыберите объекты, которые нужно ОСТАВИТЬ (остальные будут удалены): ";
                 pso.RejectObjectsOnLockedLayers = false;
 
-                PromptSelectionResult psr = ed.GetSelection(pso);
+                var psr = ed.SelectImplied();
+                if (psr.Status != PromptStatus.OK || psr.Value.Count == 0) psr = ed.GetSelection(pso);
 
                 if (psr.Status != PromptStatus.OK || psr.Value.Count == 0)
                 {
@@ -46,15 +47,13 @@ namespace AutocadTools.Commands
                     keepIds.Add(so.ObjectId);
                 }
 
-                MessageBoxResult mbResult = MessageBox.Show(
-                    "Удалить также объекты на Листах (Layouts)?\n\nДа - очистить листы.\nНет - оставить листы.",
-                    "Очистка невыбранных",
-                    MessageBoxButton.YesNoCancel,
-                    MessageBoxImage.Question);
-
-                if (mbResult == MessageBoxResult.Cancel) return;
-
-                bool cleanLayouts = (mbResult == MessageBoxResult.Yes);
+                var scope = new PromptKeywordOptions("\nУдалить остальные объекты") { AllowNone = true };
+                scope.Keywords.Add("Model", "Модель", "Модель");
+                scope.Keywords.Add("Layouts", "ТакжеЛисты", "ТакжеЛисты");
+                scope.Keywords.Default = "Model";
+                var answer = ed.GetKeywords(scope);
+                if (answer.Status != PromptStatus.OK && answer.Status != PromptStatus.None) return;
+                bool cleanLayouts = answer.StringResult == "Layouts";
 
                 int deletedCount = 0;
                 int purgedCount = 0;
