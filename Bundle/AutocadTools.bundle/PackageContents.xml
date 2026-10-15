@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ApplicationPackage SchemaVersion="1.0" AutodeskProduct="AutoCAD" ProductType="Application"
   Name="Autocad Tools" Description="Autocad Tools — инструменты AutoCAD 2025–2027"
-  AppVersion="0.1.0" ProductCode="{D3A3F30D-A5F7-4DF9-A6D4-CC17D24B83DB}" Author="OOXGN">
+  AppVersion="0.1.1" ProductCode="{D3A3F30D-A5F7-4DF9-A6D4-CC17D24B83DB}" Author="OOXGN">
   <CompanyDetails Name="OOXGN" />
   <Components Description="AutoCAD 2025–2026 (.NET 8)">
     <RuntimeRequirements OS="Win64" Platform="AutoCAD|AutoCAD*" SeriesMin="R25.0" SeriesMax="R25.1" SupportPath="./Contents/Windows/2025-2026" />
