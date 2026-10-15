@@ -22,7 +22,7 @@
 .\dev.cmd Test -Suite All -AutoCAD -AutoCADVersion 2026
 ```
 
-Параметры среды и доступные наборы тестов описаны в [руководстве разработчика](DEVELOPMENT.md#цикл-разработки). Результаты проверок CI доступны в [GitHub Actions](https://github.com/OOXGN-OOX/AutocadTools/actions/workflows/build.yml).
+Параметры среды и доступные наборы тестов описаны в [руководстве разработчика](DEVELOPMENT.md#проверки-и-debug-сборка). Результаты проверок CI доступны в [GitHub Actions](https://github.com/OOXGN-OOX/AutocadTools/actions/workflows/build.yml).
 
 ## Покрытие
 
