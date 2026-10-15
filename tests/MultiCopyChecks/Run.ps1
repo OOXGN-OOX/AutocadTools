@@ -21,7 +21,7 @@ $taskScript = Join-Path $taskScratch 'checks.scr'
 $taskLog = Join-Path $taskScratch 'results.log'
 if (Test-Path -LiteralPath $taskLog) { Remove-Item -LiteralPath $taskLog }
 $taskDllForLisp = $taskDll.Replace('\', '/')
-[IO.File]::WriteAllText($taskScript, "(setvar `"SECURELOAD`" 0)`n(command `"_netload`" `"$taskDllForLisp`")`nMULTICOPY_CHECKS`nMULTICOPY_SEED`nMULTICOPY`n_Divide`n3`n_Primitive`n_Last`nMULTICOPY_VERIFY_COMMAND`nMULTICOPY_PRESELECT`nMULTICOPY`n_Measure`n30`n0,0`n100,0`nMULTICOPY_VERIFY_POINTS`n_QUIT`n_Y`n", [Text.Encoding]::ASCII)
+[IO.File]::WriteAllText($taskScript, "(setvar `"SECURELOAD`" 0)`n(command `"_netload`" `"$taskDllForLisp`")`nMULTICOPY_CHECKS`nMULTICOPY_SEED`nMULTICOPY`n_Divide`n3`n_Primitive`n_Last`nMULTICOPY_VERIFY_COMMAND`nMULTICOPY_PRESELECT`nMULTICOPY`n_Measure`n30`n0,0`n100,0`nMULTICOPY_VERIFY_POINTS`nMULTICOPY_SEED_UCS`nMULTICOPY`n30`n10,20,3`n100,20,3`nMULTICOPY_VERIFY_UCS`n_QUIT`n_Y`n", [Text.Encoding]::ASCII)
 $taskProcess = Start-Process -FilePath $taskConsole -ArgumentList @('/s', ('"' + $taskScript + '"'), '/l', 'en-US') -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $taskScratch 'stdout.log') -RedirectStandardError (Join-Path $taskScratch 'stderr.log')
 if (!$taskProcess.WaitForExit(60000)) {
     Stop-Process -Id $taskProcess.Id -ErrorAction SilentlyContinue
@@ -32,5 +32,5 @@ $taskResult = [IO.File]::ReadAllText($taskLog)
 $taskValidation = Join-Path $taskRoot 'artifacts\validation'
 New-Item -ItemType Directory -Path $taskValidation -Force | Out-Null
 Copy-Item -LiteralPath $taskLog -Destination (Join-Path $taskValidation "multicopy-$AutoCADVersion.log") -Force
-if ($taskResult -notmatch 'MULTICOPY_PASS:' -or $taskResult -match 'MULTICOPY_FAIL:') { throw $taskResult }
+if ($taskResult -notmatch 'MULTICOPY_PASS:' -or $taskResult -notmatch 'Shifted/rotated UCS command and elevation passed' -or $taskResult -match 'MULTICOPY_FAIL:') { throw $taskResult }
 Write-Output ($taskResult.Trim().Split("`n")[-1])

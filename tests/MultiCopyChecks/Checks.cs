@@ -179,4 +179,46 @@ public class Checks
         }
         catch (System.Exception ex) { File.AppendAllText(Log, "MULTICOPY_FAIL: " + ex + "\n"); }
     }
+
+    private static Matrix3d _testUcs;
+    private static Point3d _testBase;
+    [CommandMethod("MULTICOPY_SEED_UCS")]
+    public void SeedUcs()
+    {
+        var doc = AcadApp.DocumentManager.MdiActiveDocument;
+        _testUcs = Matrix3d.Displacement(new Vector3d(100000, -200000, 500)) *
+            Matrix3d.Rotation(Math.PI / 2, Vector3d.ZAxis, Point3d.Origin);
+        doc.Editor.CurrentUserCoordinateSystem = _testUcs;
+        AcadApp.SetSystemVariable("DYNMODE", 0);
+        AcadApp.SetSystemVariable("OSMODE", 0);
+        AcadApp.SetSystemVariable("ORTHOMODE", 0);
+        _testBase = new Point3d(10, 20, 3).TransformBy(_testUcs);
+        using (var tr = doc.Database.TransactionManager.StartTransaction())
+        {
+            var space = (BlockTableRecord)tr.GetObject(doc.Database.CurrentSpaceId, OpenMode.ForWrite);
+            var circle = new Circle(_testBase, Vector3d.ZAxis, 2);
+            _seedId = space.AppendEntity(circle); tr.AddNewlyCreatedDBObject(circle, true);
+            tr.Commit();
+        }
+        doc.Editor.SetImpliedSelection(new[] { _seedId });
+    }
+    [CommandMethod("MULTICOPY_VERIFY_UCS")]
+    public void VerifyUcs()
+    {
+        try
+        {
+            var db = AcadApp.DocumentManager.MdiActiveDocument.Database;
+            using (var tr = db.TransactionManager.StartTransaction())
+            {
+                var space = (BlockTableRecord)tr.GetObject(db.CurrentSpaceId, OpenMode.ForRead);
+                var circles = space.Cast<ObjectId>().Select(id => tr.GetObject(id, OpenMode.ForRead)).OfType<Circle>()
+                    .Where(c => c.Center.DistanceTo(_testBase) < 1000).OrderBy(c => c.Center.Y).ToArray();
+                Assert(circles.Length == 4, "Shifted/rotated UCS produced wrong copy count");
+                for (int i = 0; i < 4; i++)
+                    Near(circles[i].Center - _testBase, new Vector3d(i * 30, 0, 0).TransformBy(_testUcs));
+            }
+            File.AppendAllText(Log, "Shifted/rotated UCS command and elevation passed.\n");
+        }
+        catch (System.Exception ex) { File.AppendAllText(Log, "MULTICOPY_FAIL: " + ex + "\n"); }
+    }
 }

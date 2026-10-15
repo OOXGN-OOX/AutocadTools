@@ -55,14 +55,16 @@ namespace AutocadTools.Commands
                     if (path.Status != PromptStatus.OK) return;
                     using (var tr = db.TransactionManager.StartTransaction())
                         offsets = MultiCopyService.AlongCurve((Curve)tr.GetObject(path.ObjectId, OpenMode.ForRead),
-                            path.PickedPoint, _spacing, _segments, _divide);
+                            path.PickedPoint.TransformBy(ed.CurrentUserCoordinateSystem), _spacing, _segments, _divide);
                 }
                 else if (point.Status == PromptStatus.OK)
                 {
-                    using (var jig = new MultiCopyJig(db, ids, point.Value, _spacing, _segments, _divide))
+                    // Editor prompts return UCS points; AcquirePoint inside a jig returns WCS.
+                    var basePoint = point.Value.TransformBy(ed.CurrentUserCoordinateSystem);
+                    using (var jig = new MultiCopyJig(db, ids, basePoint, _spacing, _segments, _divide))
                     {
                         if (ed.Drag(jig).Status != PromptStatus.OK) return;
-                        offsets = MultiCopyService.AlongLine(point.Value, jig.EndPoint, _spacing, _segments, _divide);
+                        offsets = MultiCopyService.AlongLine(basePoint, jig.EndPoint, _spacing, _segments, _divide);
                     }
                 }
                 else return;
@@ -152,9 +154,12 @@ namespace AutocadTools.Commands
         protected override bool WorldDraw(WorldDraw draw)
         {
             draw.Geometry.WorldLine(_basePoint, _currentPoint);
-            if (_offsets.Length > 100) return true;
-            foreach (var offset in _offsets)
+            int shown = Math.Min(100, _offsets.Length);
+            for (int i = 0; i < shown; i++)
             {
+                // For long arrays retain a preview spanning the first and last copy.
+                int index = shown == _offsets.Length ? i : (int)((long)i * (_offsets.Length - 1) / (shown - 1));
+                var offset = _offsets[index];
                 draw.Geometry.PushModelTransform(Matrix3d.Displacement(offset));
                 try { foreach (var entity in _preview) draw.Geometry.Draw(entity); }
                 finally { draw.Geometry.PopModelTransform(); }
