@@ -85,7 +85,10 @@ namespace AutocadTools.Services
                     block.AttributeCollection.AppendAttribute(reference);
                     transaction.AddNewlyCreatedDBObject(reference, true);
                 }
+                StampSignatureDwgService.Synchronize(target);
+                StampTextLayoutService.Apply(target);
                 transaction.Commit();
+                StampSignatureTracking.Start();
                 return result;
             }
         }

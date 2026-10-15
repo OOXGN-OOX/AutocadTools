@@ -100,7 +100,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource AccentColor}"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
     </Style>
-    <Style TargetType="TextBox">
+    <Style x:Key="ToolTextBox" TargetType="TextBox">
         <Setter Property="Background" Value="{DynamicResource InputBackground}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
         <Setter Property="CaretBrush" Value="{DynamicResource TextPrimary}"/>
@@ -140,6 +140,7 @@
             </Trigger>
         </Style.Triggers>
     </Style>
+    <Style TargetType="TextBox" BasedOn="{StaticResource ToolTextBox}"/>
     <Style x:Key="DropToggle" TargetType="ToggleButton">
         <Setter Property="Focusable" Value="False"/>
         <Setter Property="IsTabStop" Value="False"/>

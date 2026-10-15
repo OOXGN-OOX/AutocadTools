@@ -27,6 +27,7 @@ namespace UiChecks
     public class PlotRow { public string Name { get; set; } public string SheetNumber { get; set; } public string Format { get; set; } public string Status { get; set; } public bool IsSelected { get; set; } }
     public class Fixture
     {
+        public AutocadTools.Models.StampTypography Typography { get; } = new AutocadTools.Models.StampTypography();
         public object Options { get; set; }
         public string Prefix { get; set; } = "П";
         public string Suffix { get; set; } = "";
@@ -80,6 +81,10 @@ namespace UiChecks
             try
             {
                 var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+                // Reproduce the AutoCAD application theme, which supplies its own implicit TextBox style.
+                var hostStyle = new Style(typeof(TextBox));
+                hostStyle.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.Black));
+                app.Resources[typeof(TextBox)] = hostStyle;
                 string root = Path.GetFullPath(args[0]);
                 string output = Path.Combine(root, "artifacts", "validation", "ui");
                 Directory.CreateDirectory(output);
@@ -154,6 +159,22 @@ namespace UiChecks
                             throw new Exception("Combo box popup did not open.");
                         combo.IsDropDownOpen = false;
                     }
+                    if (Path.GetFileName(path) == "StampPropsControl.xaml")
+                    {
+                        foreach (var editor in Descendants(content).OfType<TextBox>())
+                            if (editor.Foreground is not SolidColorBrush brush || brush.Color.R < 200)
+                                throw new Exception("Stamp text inherited a dark host foreground.");
+                        var editors = Descendants(content).OfType<TextBox>().ToArray();
+                        var code = editors.Single(e => BindingOperations.GetBinding(e, TextBox.TextProperty)?.Path.Path == "ОбозначениеДокумента");
+                        var project = editors.Single(e => BindingOperations.GetBinding(e, TextBox.TextProperty)?.Path.Path == "НаименованиеОбъекта");
+                        if (Math.Abs(code.FontSize / project.FontSize - 2) > 0.001 || code.FontWeight != FontWeights.Normal)
+                            throw new Exception("Editor font heights do not match the 5 / 2.5 mm DWG typography.");
+                        if (code.Template.FindName("PART_ContentHost", code) is ScrollViewer scroll && scroll.ComputedVerticalScrollBarVisibility == Visibility.Visible)
+                            throw new Exception("A short document code unexpectedly scrolls vertically.");
+                        project.Text = new string('0', 180); window.UpdateLayout();
+                        if (project.TextWrapping != TextWrapping.Wrap || project.LineCount < 2 || project.HorizontalScrollBarVisibility != ScrollBarVisibility.Disabled)
+                            throw new Exception("An unbroken project name does not wrap inside the editor.");
+                    }
                     var surface = (FrameworkElement)VisualTreeHelper.GetChild(window, 0);
                     double width = surface.ActualWidth, height = surface.ActualHeight;
                     // Localized command labels must remain fully inside their hit targets.
@@ -174,7 +195,37 @@ namespace UiChecks
                     window.Close();
                     count++;
                 }
-                Console.WriteLine($"PASS: {count} WPF renders, 100% / 150%, default / minimum dimensions; combo boxes, command label fit; 17 vector icons.");
+                foreach (double scale in new[] { 1.0, 1.5 })
+                foreach (bool compact in new[] { false, true })
+                {
+                    var slot = new AutocadTools.Models.StampSignatureSlot("Signer1", "Подписант — строка 1");
+                    var dialog = new SignatureWindow(new[] { slot }, "Signer1") { Left = -32000, Top = -32000,
+                        WindowStartupLocation = WindowStartupLocation.Manual, ShowActivated = false };
+                    if (compact) { dialog.Width = dialog.MinWidth; dialog.Height = dialog.MinHeight; }
+                    dialog.Show(); dialog.UpdateLayout();
+                    var ink = Descendants(dialog).OfType<InkCanvas>().Single();
+                    ink.Strokes.Add(new System.Windows.Ink.Stroke(new System.Windows.Input.StylusPointCollection(new[] {
+                        new System.Windows.Input.StylusPoint(70, 80), new System.Windows.Input.StylusPoint(120, 35),
+                        new System.Windows.Input.StylusPoint(100, 110), new System.Windows.Input.StylusPoint(180, 65),
+                        new System.Windows.Input.StylusPoint(240, 90), new System.Windows.Input.StylusPoint(330, 50) }), ink.DefaultDrawingAttributes.Clone()));
+                    var source = new RenderTargetBitmap((int)ink.ActualWidth, (int)ink.ActualHeight, 96, 96, PixelFormats.Pbgra32);
+                    source.Render(ink);
+                    var signature = new AutocadTools.Models.StampSignature { Png = AutocadTools.Services.SignatureLibrary.Normalize(source) };
+                    var image = new FormatConvertedBitmap(signature.Image, PixelFormats.Bgra32, null, 0);
+                    var pixels = new byte[image.PixelWidth * image.PixelHeight * 4]; image.CopyPixels(pixels, image.PixelWidth * 4, 0);
+                    if (image.PixelWidth >= ink.ActualWidth || !Enumerable.Range(0, pixels.Length / 4).Any(p => pixels[p * 4 + 3] > 0))
+                        throw new Exception("Signature was not cropped or contains no ink.");
+                    for (int p = 0; p < pixels.Length; p += 4)
+                        if (pixels[p + 3] > 0 && (pixels[p] != 181 || pixels[p + 1] != 80 || pixels[p + 2] != 30))
+                            throw new Exception("Signature ink is not blue.");
+                    var visual = (FrameworkElement)VisualTreeHelper.GetChild(dialog, 0);
+                    var render = new RenderTargetBitmap((int)(visual.ActualWidth * scale), (int)(visual.ActualHeight * scale), 96 * scale, 96 * scale, PixelFormats.Pbgra32);
+                    render.Render(visual);
+                    var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(render));
+                    using (var file = File.Create(Path.Combine(output, $"Signature-{scale * 100:0}" + (compact ? "-compact" : "") + ".png"))) encoder.Save(file);
+                    dialog.Close(); count++;
+                }
+                Console.WriteLine($"PASS: {count} WPF renders, 100% / 150%, default / minimum dimensions; signature ink/cropping, combo boxes, command label fit; 17 vector icons.");
                 app.Shutdown();
                 return 0;
             }

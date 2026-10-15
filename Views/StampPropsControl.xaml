@@ -23,32 +23,51 @@
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="Styles.xaml"/></ResourceDictionary.MergedDictionaries>
-            <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Style x:Key="StampTextBox" TargetType="TextBox" BasedOn="{StaticResource ToolTextBox}">
+                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                <Setter Property="CaretBrush" Value="{DynamicResource TextPrimary}"/>
+                <Setter Property="FontFamily" Value="{Binding Typography.Body.FontFamily}"/>
                 <Setter Property="Background" Value="Transparent"/>
                 <Setter Property="BorderThickness" Value="0"/>
                 <Setter Property="MinHeight" Value="0"/>
-                <Setter Property="Padding" Value="2"/>
-                <Setter Property="FontSize" Value="11"/>
+                <Setter Property="Padding" Value="2,0"/>
+                <Setter Property="FontSize" Value="{Binding Typography.Body.FontSize}"/>
+                <Setter Property="ClipToBounds" Value="True"/>
                 <Setter Property="VerticalContentAlignment" Value="Center"/>
                 <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox">
-                    <Border x:Name="Cell" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1">
+                    <Grid>
+                        <Border x:Name="Cell" Background="{TemplateBinding Background}"/>
                         <ScrollViewer x:Name="PART_ContentHost" Focusable="False"/>
-                    </Border>
+                        <Border x:Name="FocusBorder" BorderBrush="Transparent" BorderThickness="1" IsHitTestVisible="False"/>
+                    </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Cell" Property="Background" Value="{DynamicResource HoverBackground}"/></Trigger>
-                        <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Cell" Property="BorderBrush" Value="{DynamicResource AccentColor}"/></Trigger>
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="FocusBorder" Property="BorderBrush" Value="{DynamicResource AccentColor}"/></Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate></Setter.Value></Setter>
+            </Style>
+            <Style x:Key="SignatureCell" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                <Setter Property="MinHeight" Value="0"/><Setter Property="MinWidth" Value="0"/>
+                <Setter Property="Padding" Value="0"/><Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                    <Border x:Name="Cell" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1"><ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/></Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Cell" Property="Background" Value="{DynamicResource HoverBackground}"/></Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Cell" Property="BorderBrush" Value="{DynamicResource AccentColor}"/></Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate></Setter.Value></Setter>
             </Style>
             <Style x:Key="StampCellBorder" TargetType="Border"><Setter Property="BorderBrush" Value="{DynamicResource ControlBorder}"/><Setter Property="BorderThickness" Value="0.5"/></Style>
             <Style TargetType="TextBlock">
                 <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
-                <Setter Property="FontSize" Value="8"/>
+                <Setter Property="FontSize" Value="{Binding Typography.Body.FontSize}"/>
+                <Setter Property="FontFamily" Value="{Binding Typography.Body.FontFamily}"/>
                 <Setter Property="VerticalAlignment" Value="Top"/>
                 <Setter Property="HorizontalAlignment" Value="Left"/>
                 <Setter Property="Margin" Value="2,0,0,0"/>
                 <Setter Property="IsHitTestVisible" Value="False"/>
             </Style>
+            <Style x:Key="StampHint" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}"><Setter Property="FontSize" Value="8"/></Style>
         </ResourceDictionary>
     </Window.Resources>
 
@@ -84,7 +103,7 @@
                                     <RotateTransform Angle="-90"/>
                                 </TextBlock.LayoutTransform>
                             </TextBlock>
-                            <TextBox AutomationProperties.Name="Взам.инв.№" Text="{Binding FieldsMap[Взам.инв.№].Value, UpdateSourceTrigger=PropertyChanged}">
+                            <TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Взам.инв.№" Text="{Binding FieldsMap[Взам.инв.№].Value, UpdateSourceTrigger=PropertyChanged}">
                                 <TextBox.LayoutTransform>
                                     <RotateTransform Angle="-90"/>
                                 </TextBox.LayoutTransform>
@@ -100,7 +119,7 @@
                                     <RotateTransform Angle="-90"/>
                                 </TextBlock.LayoutTransform>
                             </TextBlock>
-                            <TextBox AutomationProperties.Name="Подп.и.дата" Text="{Binding FieldsMap[Подп.и.дата].Value, UpdateSourceTrigger=PropertyChanged}">
+                            <TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Подп.и.дата" Text="{Binding FieldsMap[Подп.и.дата].Value, UpdateSourceTrigger=PropertyChanged}">
                                 <TextBox.LayoutTransform>
                                     <RotateTransform Angle="-90"/>
                                 </TextBox.LayoutTransform>
@@ -116,7 +135,7 @@
                                     <RotateTransform Angle="-90"/>
                                 </TextBlock.LayoutTransform>
                             </TextBlock>
-                            <TextBox AutomationProperties.Name="Инв.№" Text="{Binding FieldsMap[Инв.№].Value, UpdateSourceTrigger=PropertyChanged}">
+                            <TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Инв.№" Text="{Binding FieldsMap[Инв.№].Value, UpdateSourceTrigger=PropertyChanged}">
                                 <TextBox.LayoutTransform>
                                     <RotateTransform Angle="-90"/>
                                 </TextBox.LayoutTransform>
@@ -159,12 +178,12 @@
                                     <ColumnDefinition Width="57*"/>
                                     <ColumnDefinition Width="38*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox AutomationProperties.Name="Изм.4" Text="{Binding FieldsMap[Изм.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox AutomationProperties.Name="Кол.уч.4" Text="{Binding FieldsMap[Кол.уч.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><TextBox AutomationProperties.Name="Лист.4" Text="{Binding FieldsMap[Лист.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox AutomationProperties.Name="Nдок.4" Text="{Binding FieldsMap[Nдок.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="4"><TextBox IsReadOnly="True" Background="{DynamicResource InputBackground}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="5"><TextBox AutomationProperties.Name="Дата.10" Text="{Binding FieldsMap[Дата.10].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Изм.4" Text="{Binding FieldsMap[Изм.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Кол.уч.4" Text="{Binding FieldsMap[Кол.уч.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Лист.4" Text="{Binding FieldsMap[Лист.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Nдок.4" Text="{Binding FieldsMap[Nдок.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="4"><Button Style="{StaticResource SignatureCell}" Click="Signature_Click" Tag="Revision4" ToolTip="{Binding Signatures[Revision4].Hint}" AutomationProperties.Name="Подпись Revision4"><Image Source="{Binding Signatures[Revision4].Image}" Stretch="Uniform" Margin="2"/></Button></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="5"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Дата.10" Text="{Binding FieldsMap[Дата.10].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
                             </Grid>
 
                             <!-- Изм 3 -->
@@ -177,12 +196,12 @@
                                     <ColumnDefinition Width="57*"/>
                                     <ColumnDefinition Width="38*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox AutomationProperties.Name="Изм.3" Text="{Binding FieldsMap[Изм.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox AutomationProperties.Name="Кол.уч.3" Text="{Binding FieldsMap[Кол.уч.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><TextBox AutomationProperties.Name="Лист.3" Text="{Binding FieldsMap[Лист.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox AutomationProperties.Name="Nдок.3" Text="{Binding FieldsMap[Nдок.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="4"><TextBox IsReadOnly="True" Background="{DynamicResource InputBackground}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="5"><TextBox AutomationProperties.Name="Дата.9" Text="{Binding FieldsMap[Дата.9].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Изм.3" Text="{Binding FieldsMap[Изм.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Кол.уч.3" Text="{Binding FieldsMap[Кол.уч.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Лист.3" Text="{Binding FieldsMap[Лист.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Nдок.3" Text="{Binding FieldsMap[Nдок.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="4"><Button Style="{StaticResource SignatureCell}" Click="Signature_Click" Tag="Revision3" ToolTip="{Binding Signatures[Revision3].Hint}" AutomationProperties.Name="Подпись Revision3"><Image Source="{Binding Signatures[Revision3].Image}" Stretch="Uniform" Margin="2"/></Button></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="5"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Дата.9" Text="{Binding FieldsMap[Дата.9].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
                             </Grid>
 
                             <!-- Изм 2 -->
@@ -195,12 +214,12 @@
                                     <ColumnDefinition Width="57*"/>
                                     <ColumnDefinition Width="38*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox AutomationProperties.Name="Изм.2" Text="{Binding FieldsMap[Изм.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox AutomationProperties.Name="Кол.уч.2" Text="{Binding FieldsMap[Кол.уч.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><TextBox AutomationProperties.Name="Лист.2" Text="{Binding FieldsMap[Лист.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox AutomationProperties.Name="Nдок.2" Text="{Binding FieldsMap[Nдок.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="4"><TextBox IsReadOnly="True" Background="{DynamicResource InputBackground}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="5"><TextBox AutomationProperties.Name="Дата.8" Text="{Binding FieldsMap[Дата.8].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Изм.2" Text="{Binding FieldsMap[Изм.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Кол.уч.2" Text="{Binding FieldsMap[Кол.уч.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Лист.2" Text="{Binding FieldsMap[Лист.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Nдок.2" Text="{Binding FieldsMap[Nдок.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="4"><Button Style="{StaticResource SignatureCell}" Click="Signature_Click" Tag="Revision2" ToolTip="{Binding Signatures[Revision2].Hint}" AutomationProperties.Name="Подпись Revision2"><Image Source="{Binding Signatures[Revision2].Image}" Stretch="Uniform" Margin="2"/></Button></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="5"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Дата.8" Text="{Binding FieldsMap[Дата.8].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
                             </Grid>
 
                             <!-- Изм 1 -->
@@ -213,12 +232,12 @@
                                     <ColumnDefinition Width="57*"/>
                                     <ColumnDefinition Width="38*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox AutomationProperties.Name="Изм.1" Text="{Binding FieldsMap[Изм.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox AutomationProperties.Name="Кол.уч.1" Text="{Binding FieldsMap[Кол.уч.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><TextBox AutomationProperties.Name="Лист.1" Text="{Binding FieldsMap[Лист.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox AutomationProperties.Name="Nдок.1" Text="{Binding FieldsMap[Nдок.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="4"><TextBox IsReadOnly="True" Background="{DynamicResource InputBackground}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="5"><TextBox AutomationProperties.Name="Дата.7" Text="{Binding FieldsMap[Дата.7].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Изм.1" Text="{Binding FieldsMap[Изм.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Кол.уч.1" Text="{Binding FieldsMap[Кол.уч.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Лист.1" Text="{Binding FieldsMap[Лист.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Nдок.1" Text="{Binding FieldsMap[Nдок.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="4"><Button Style="{StaticResource SignatureCell}" Click="Signature_Click" Tag="Revision1" ToolTip="{Binding Signatures[Revision1].Hint}" AutomationProperties.Name="Подпись Revision1"><Image Source="{Binding Signatures[Revision1].Image}" Stretch="Uniform" Margin="2"/></Button></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="5"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Дата.7" Text="{Binding FieldsMap[Дата.7].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
                             </Grid>
 
                             <!-- Заголовки -->
@@ -247,10 +266,10 @@
                                     <ColumnDefinition Width="57*"/>
                                     <ColumnDefinition Width="38*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox AutomationProperties.Name="Должн.1" Text="{Binding FieldsMap[Должн.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox AutomationProperties.Name="Фам.1" Text="{Binding FieldsMap[Фам.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><TextBox IsReadOnly="True" Background="{DynamicResource InputBackground}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox AutomationProperties.Name="Дата.1" Text="{Binding FieldsMap[Дата.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Должн.1" Text="{Binding FieldsMap[Должн.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Фам.1" Text="{Binding FieldsMap[Фам.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><Button Style="{StaticResource SignatureCell}" Click="Signature_Click" Tag="Signer1" ToolTip="{Binding Signatures[Signer1].Hint}" AutomationProperties.Name="Подпись Signer1"><Image Source="{Binding Signatures[Signer1].Image}" Stretch="Uniform" Margin="2"/></Button></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Дата.1" Text="{Binding FieldsMap[Дата.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
                             </Grid>
                             <Grid Grid.Row="6">
                                 <Grid.ColumnDefinitions>
@@ -259,10 +278,10 @@
                                     <ColumnDefinition Width="57*"/>
                                     <ColumnDefinition Width="38*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox AutomationProperties.Name="Должн.2" Text="{Binding FieldsMap[Должн.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox AutomationProperties.Name="Фам.2" Text="{Binding FieldsMap[Фам.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><TextBox IsReadOnly="True" Background="{DynamicResource InputBackground}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox AutomationProperties.Name="Дата.2" Text="{Binding FieldsMap[Дата.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Должн.2" Text="{Binding FieldsMap[Должн.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Фам.2" Text="{Binding FieldsMap[Фам.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><Button Style="{StaticResource SignatureCell}" Click="Signature_Click" Tag="Signer2" ToolTip="{Binding Signatures[Signer2].Hint}" AutomationProperties.Name="Подпись Signer2"><Image Source="{Binding Signatures[Signer2].Image}" Stretch="Uniform" Margin="2"/></Button></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Дата.2" Text="{Binding FieldsMap[Дата.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
                             </Grid>
                             <Grid Grid.Row="7">
                                 <Grid.ColumnDefinitions>
@@ -271,10 +290,10 @@
                                     <ColumnDefinition Width="57*"/>
                                     <ColumnDefinition Width="38*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox AutomationProperties.Name="Должн.3" Text="{Binding FieldsMap[Должн.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox AutomationProperties.Name="Фам.3" Text="{Binding FieldsMap[Фам.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><TextBox IsReadOnly="True" Background="{DynamicResource InputBackground}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox AutomationProperties.Name="Дата.3" Text="{Binding FieldsMap[Дата.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Должн.3" Text="{Binding FieldsMap[Должн.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Фам.3" Text="{Binding FieldsMap[Фам.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><Button Style="{StaticResource SignatureCell}" Click="Signature_Click" Tag="Signer3" ToolTip="{Binding Signatures[Signer3].Hint}" AutomationProperties.Name="Подпись Signer3"><Image Source="{Binding Signatures[Signer3].Image}" Stretch="Uniform" Margin="2"/></Button></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Дата.3" Text="{Binding FieldsMap[Дата.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
                             </Grid>
                             <Grid Grid.Row="8">
                                 <Grid.ColumnDefinitions>
@@ -283,10 +302,10 @@
                                     <ColumnDefinition Width="57*"/>
                                     <ColumnDefinition Width="38*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox AutomationProperties.Name="Должн.4" Text="{Binding FieldsMap[Должн.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox AutomationProperties.Name="Фам.4" Text="{Binding FieldsMap[Фам.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><TextBox IsReadOnly="True" Background="{DynamicResource InputBackground}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox AutomationProperties.Name="Дата.4" Text="{Binding FieldsMap[Дата.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Должн.4" Text="{Binding FieldsMap[Должн.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Фам.4" Text="{Binding FieldsMap[Фам.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><Button Style="{StaticResource SignatureCell}" Click="Signature_Click" Tag="Signer4" ToolTip="{Binding Signatures[Signer4].Hint}" AutomationProperties.Name="Подпись Signer4"><Image Source="{Binding Signatures[Signer4].Image}" Stretch="Uniform" Margin="2"/></Button></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Дата.4" Text="{Binding FieldsMap[Дата.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
                             </Grid>
                             <Grid Grid.Row="9">
                                 <Grid.ColumnDefinitions>
@@ -295,10 +314,10 @@
                                     <ColumnDefinition Width="57*"/>
                                     <ColumnDefinition Width="38*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox AutomationProperties.Name="Должн.5" Text="{Binding FieldsMap[Должн.5].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox AutomationProperties.Name="Фам.5" Text="{Binding FieldsMap[Фам.5].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><TextBox IsReadOnly="True" Background="{DynamicResource InputBackground}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox AutomationProperties.Name="Дата.5" Text="{Binding FieldsMap[Дата.5].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Должн.5" Text="{Binding FieldsMap[Должн.5].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Фам.5" Text="{Binding FieldsMap[Фам.5].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><Button Style="{StaticResource SignatureCell}" Click="Signature_Click" Tag="Signer5" ToolTip="{Binding Signatures[Signer5].Hint}" AutomationProperties.Name="Подпись Signer5"><Image Source="{Binding Signatures[Signer5].Image}" Stretch="Uniform" Margin="2"/></Button></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Дата.5" Text="{Binding FieldsMap[Дата.5].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
                             </Grid>
                             <Grid Grid.Row="10">
                                 <Grid.ColumnDefinitions>
@@ -307,10 +326,10 @@
                                     <ColumnDefinition Width="57*"/>
                                     <ColumnDefinition Width="38*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox AutomationProperties.Name="Должн.6" Text="{Binding FieldsMap[Должн.6].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox AutomationProperties.Name="Фам.6" Text="{Binding FieldsMap[Фам.6].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><TextBox IsReadOnly="True" Background="{DynamicResource InputBackground}"/></Border>
-                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox AutomationProperties.Name="Дата.6" Text="{Binding FieldsMap[Дата.6].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Должн.6" Text="{Binding FieldsMap[Должн.6].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Фам.6" Text="{Binding FieldsMap[Фам.6].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><Button Style="{StaticResource SignatureCell}" Click="Signature_Click" Tag="Signer6" ToolTip="{Binding Signatures[Signer6].Hint}" AutomationProperties.Name="Подпись Signer6"><Image Source="{Binding Signatures[Signer6].Image}" Stretch="Uniform" Margin="2"/></Button></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Дата.6" Text="{Binding FieldsMap[Дата.6].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
                             </Grid>
                         </Grid>
 
@@ -326,13 +345,13 @@
                             <!-- Обозначение -->
                             <Border Style="{StaticResource StampCellBorder}" Grid.Row="0">
                                 <Grid>
-                                    <TextBlock Text="Обозначение документа"/>
+                                    <TextBlock Style="{StaticResource StampHint}" Text="Обозначение документа"/>
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition/>
                                             <ColumnDefinition/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBox Grid.ColumnSpan="2" FontSize="14" FontWeight="Bold" MaxLength="128" Text="{Binding ОбозначениеДокумента, UpdateSourceTrigger=PropertyChanged}"/>
+                                        <TextBox Style="{StaticResource StampTextBox}" Grid.ColumnSpan="2" FontSize="{Binding Typography.Code.FontSize}" FontFamily="{Binding Typography.Code.FontFamily}" TextWrapping="Wrap" TextAlignment="Center" AcceptsReturn="True" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" MaxLength="1000" Text="{Binding ОбозначениеДокумента, UpdateSourceTrigger=PropertyChanged}"/>
                                     </Grid>
                                 </Grid>
                             </Border>
@@ -340,13 +359,13 @@
                             <!-- Проект -->
                             <Border Style="{StaticResource StampCellBorder}" Grid.Row="1">
                                 <Grid>
-                                    <TextBlock Text="Наименование проекта"/>
+                                    <TextBlock Style="{StaticResource StampHint}" Text="Наименование проекта"/>
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition/>
                                             <ColumnDefinition/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBox Grid.ColumnSpan="2" VerticalContentAlignment="Top" Padding="5" MaxLength="128" Text="{Binding НаименованиеОбъекта, UpdateSourceTrigger=PropertyChanged}"/>
+                                        <TextBox Style="{StaticResource StampTextBox}" Grid.ColumnSpan="2" FontSize="{Binding Typography.Project.FontSize}" FontFamily="{Binding Typography.Project.FontFamily}" TextWrapping="Wrap" TextAlignment="Center" AcceptsReturn="True" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Center" Margin="0,8,0,0" Padding="3.8,0" MaxLength="1000" Text="{Binding НаименованиеОбъекта, UpdateSourceTrigger=PropertyChanged}"/>
                                     </Grid>
                                 </Grid>
                             </Border>
@@ -361,32 +380,32 @@
                                 </Grid.ColumnDefinitions>
                                 <Border Style="{StaticResource StampCellBorder}" Grid.Column="0">
                                     <Grid>
-                                        <TextBlock Text="Наименование здания"/>
+                                        <TextBlock Style="{StaticResource StampHint}" Text="Наименование здания"/>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition/>
                                                 <ColumnDefinition/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBox Grid.ColumnSpan="2" VerticalContentAlignment="Top" Padding="5" MaxLength="128" Text="{Binding НаименованиеУчастка, UpdateSourceTrigger=PropertyChanged}"/>
+                                            <TextBox Style="{StaticResource StampTextBox}" Grid.ColumnSpan="2" FontSize="{Binding Typography.Building.FontSize}" FontFamily="{Binding Typography.Building.FontFamily}" TextWrapping="Wrap" TextAlignment="Center" AcceptsReturn="True" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Center" Margin="0,8,0,0" Padding="3.8,0" MaxLength="1000" Text="{Binding НаименованиеУчастка, UpdateSourceTrigger=PropertyChanged}"/>
                                         </Grid>
                                     </Grid>
                                 </Border>
                                 <Border Style="{StaticResource StampCellBorder}" Grid.Column="1">
                                     <Grid>
                                         <TextBlock Text="Стадия" HorizontalAlignment="Center"/>
-                                        <TextBox AutomationProperties.Name="Стадия" Margin="0,12,0,0" HorizontalContentAlignment="Center" Text="{Binding FieldsMap[Стадия].Value, UpdateSourceTrigger=PropertyChanged}"/>
+                                        <TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Стадия" Margin="0,12,0,0" HorizontalContentAlignment="Center" Text="{Binding FieldsMap[Стадия].Value, UpdateSourceTrigger=PropertyChanged}"/>
                                     </Grid>
                                 </Border>
                                 <Border Style="{StaticResource StampCellBorder}" Grid.Column="2">
                                     <Grid>
                                         <TextBlock Text="Лист" HorizontalAlignment="Center"/>
-                                        <TextBox IsReadOnly="True" Text="auto" Margin="0,12,0,0" HorizontalContentAlignment="Center" Background="{DynamicResource InputBackground}"/>
+                                        <TextBox Style="{StaticResource StampTextBox}" IsReadOnly="True" Text="auto" Margin="0,12,0,0" HorizontalContentAlignment="Center" Background="{DynamicResource InputBackground}"/>
                                     </Grid>
                                 </Border>
                                 <Border Style="{StaticResource StampCellBorder}" Grid.Column="3">
                                     <Grid>
                                         <TextBlock Text="Листов" HorizontalAlignment="Center"/>
-                                        <TextBox AutomationProperties.Name="Листов" Margin="0,12,0,0" HorizontalContentAlignment="Center" Text="{Binding FieldsMap[Листов].Value, UpdateSourceTrigger=PropertyChanged}"/>
+                                        <TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Листов" Margin="0,12,0,0" HorizontalContentAlignment="Center" Text="{Binding FieldsMap[Листов].Value, UpdateSourceTrigger=PropertyChanged}"/>
                                     </Grid>
                                 </Border>
                             </Grid>
@@ -399,14 +418,14 @@
                                 </Grid.ColumnDefinitions>
                                 <Border Style="{StaticResource StampCellBorder}" Grid.Column="0">
                                     <Grid>
-                                        <TextBlock Text="Наименование" VerticalAlignment="Top"/>
-                                        <TextBox IsReadOnly="True" Background="{DynamicResource InputBackground}"/>
+                                        <TextBlock Style="{StaticResource StampHint}" Text="Наименование" VerticalAlignment="Top"/>
+                                        <TextBox Style="{StaticResource StampTextBox}" IsReadOnly="True" Background="{DynamicResource InputBackground}"/>
                                     </Grid>
                                 </Border>
                                 <Border Style="{StaticResource StampCellBorder}" Grid.Column="1">
                                     <Grid>
-                                        <TextBlock Text="Компания"/>
-                                        <TextBox AutomationProperties.Name="Компания" FontSize="18" FontWeight="Bold" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Text="{Binding FieldsMap[Компания].Value, UpdateSourceTrigger=PropertyChanged}"/>
+                                        <TextBlock Style="{StaticResource StampHint}" Text="Компания"/>
+                                        <TextBox Style="{StaticResource StampTextBox}" AutomationProperties.Name="Компания" FontSize="{Binding Typography.Company.FontSize}" FontFamily="{Binding Typography.Company.FontFamily}" TextWrapping="Wrap" TextAlignment="Center" AcceptsReturn="True" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Text="{Binding FieldsMap[Компания].Value, UpdateSourceTrigger=PropertyChanged}"/>
                                     </Grid>
                                 </Border>
                             </Grid>
@@ -416,6 +435,7 @@
             </Grid>
         </Viewbox>
 
+        <Button Grid.Row="1" Content="Подписи…" Click="Signature_Click" HorizontalAlignment="Left" VerticalAlignment="Center" ToolTip="Загрузить PNG, нарисовать или выбрать сохранённую подпись"/>
         <!-- КНОПКИ -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,5,0,0">
             <Button Content="Обновить из чертежа" Command="{Binding RefreshCommand}" Style="{StaticResource {x:Type Button}}" Margin="0,0,10,0"/>

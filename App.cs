@@ -36,6 +36,7 @@ namespace AutocadTools
 
         public void Initialize()
         {
+            try { Services.StampSignatureTracking.Start(); } catch (System.Exception ex) { LogStartupError(ex); }
             try { Services.SelectionLengthService.Start(); } catch (System.Exception ex) { LogStartupError(ex); }
             try { Services.UpdateCheckService.Start(); } catch (System.Exception ex) { LogStartupError(ex); }
             AcadApp.Idle += Application_Idle;
@@ -43,6 +44,7 @@ namespace AutocadTools
 
         public void Terminate()
         {
+            Services.StampSignatureTracking.Stop();
             Services.UpdateCheckService.Stop();
             Services.SelectionLengthService.Stop();
             Services.DsdPublishService.Shutdown();

@@ -10,6 +10,13 @@
     <Page Include="..\..\Views\Styles.xaml" Link="Views\Styles.xaml"/>
     <Compile Include="..\..\Views\UiTheme.cs" Link="UiTheme.cs"/>
     <Compile Include="..\..\Views\ToolIcons.cs" Link="ToolIcons.cs"/>
+    <Compile Include="..\..\Views\SignatureWindow.cs" Link="SignatureWindow.cs"/>
+    <Compile Include="..\..\Models\StampSignature.cs" Link="StampSignature.cs"/>
+    <Compile Include="..\..\Models\StampTypography.cs" Link="StampTypography.cs"/>
+    <Compile Include="..\..\ViewModels\BaseViewModel.cs" Link="BaseViewModel.cs"/>
+    <Compile Include="..\..\Services\SignatureLibrary.cs" Link="SignatureLibrary.cs"/>
+    <Compile Include="..\..\Services\PluginPaths.cs" Link="PluginPaths.cs"/>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4"/>
     <Compile Include="..\..\Models\CleanDwgOptions.cs" Link="CleanDwgOptions.cs"/>
     <Compile Include="..\..\Models\PlanPrepOptions.cs" Link="PlanPrepOptions.cs"/>
     <Compile Include="..\..\Models\SelectSimilarOptions.cs" Link="SelectSimilarOptions.cs"/>

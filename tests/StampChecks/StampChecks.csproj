@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework Condition="'$(AutoCADVersion)' != '2027'">net8.0-windows</TargetFramework>
+    <TargetFramework Condition="'$(AutoCADVersion)' == '2027'">net10.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget><UseWPF>true</UseWPF><UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\Models\StampSignature.cs" Link="StampSignature.cs"/>
+    <Compile Include="..\..\Models\StampTypography.cs" Link="StampTypography.cs"/>
+    <Compile Include="..\..\Models\StampProperties.cs" Link="StampProperties.cs"/>
+    <Compile Include="..\..\Models\StampField.cs" Link="StampField.cs"/>
+    <Compile Include="..\..\ViewModels\BaseViewModel.cs" Link="BaseViewModel.cs"/>
+    <Compile Include="..\..\ViewModels\RelayCommand.cs" Link="RelayCommand.cs"/>
+    <Compile Include="..\..\ViewModels\StampPropsViewModel.cs" Link="StampPropsViewModel.cs"/>
+    <Compile Include="..\..\ViewModels\StampSignatures.cs" Link="StampSignatures.cs"/>
+    <Compile Include="..\..\Services\SignatureLibrary.cs" Link="SignatureLibrary.cs"/>
+    <Compile Include="..\..\Services\PluginPaths.cs" Link="PluginPaths.cs"/>
+    <Compile Include="..\..\Services\StampSignatureDwgService.cs" Link="StampSignatureDwgService.cs"/>
+    <Compile Include="..\..\Services\StampTextLayoutService.cs" Link="StampTextLayoutService.cs"/>
+    <Compile Include="..\..\Services\IStampTypographyService.cs" Link="IStampTypographyService.cs"/>
+    <Compile Include="..\..\Services\StampSignatureTracking.cs" Link="StampSignatureTracking.cs"/>
+    <Compile Include="..\..\Services\FormatInsertService.cs" Link="FormatInsertService.cs"/>
+    <Compile Include="..\..\Services\IAutoCADService.cs" Link="IAutoCADService.cs"/>
+    <Compile Include="..\..\Services\IStampSignatureService.cs" Link="IStampSignatureService.cs"/>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4"/>
+    <Reference Include="AcCoreMgd"><HintPath>C:\Program Files\Autodesk\AutoCAD $(AutoCADVersion)\accoremgd.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="AcDbMgd"><HintPath>C:\Program Files\Autodesk\AutoCAD $(AutoCADVersion)\acdbmgd.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="AcMgd"><HintPath>C:\Program Files\Autodesk\AutoCAD $(AutoCADVersion)\acmgd.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>

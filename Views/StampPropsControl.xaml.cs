@@ -7,6 +7,8 @@
 
 // File: AutocadTools/Views/StampWindow.xaml.cs
 using System.Windows;
+using System.Linq;
+using System.Windows.Controls;
 
 namespace AutocadTools.Views
 {
@@ -17,6 +19,14 @@ namespace AutocadTools.Views
             InitializeComponent();
             UiTheme.Apply(this);
             DataContext = viewModel;
+        }
+
+        private void Signature_Click(object sender, RoutedEventArgs e)
+        {
+            var viewModel = (ViewModels.StampPropsViewModel)DataContext;
+            var key = (sender as Button)?.Tag as string ?? "Signer1";
+            var dialog = new SignatureWindow(viewModel.Signatures.Values.ToArray(), key) { Owner = this };
+            if (dialog.ShowDialog() == true) viewModel.Signatures[dialog.SlotKey].Signature = dialog.Result;
         }
     }
 }
