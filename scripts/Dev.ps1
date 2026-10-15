@@ -1,6 +1,6 @@
 param(
-    [ValidateSet('Check','Test','Build')][string]$Mode = 'Check',
-    [ValidateSet('All','MultiCopy','Updates','Pdf','UI')][string]$Suite = 'All',
+    [ValidateSet('Check','Test','Build','Preview')][string]$Mode = 'Check',
+    [ValidateSet('All','MultiCopy','Stamp','Updates','Pdf','UI')][string]$Suite = 'All',
     [ValidateSet('2025','2026','2027')][string]$AutoCADVersion = '2026',
     [switch]$AutoCAD,
     [string]$DotnetPath
@@ -17,6 +17,10 @@ Write-Host 'PASS: PowerShell syntax. No plugin or installer was built.'
 if ($Mode -eq 'Check') { return }
 if ($Mode -eq 'Test' -and $Suite -eq 'All') { & (Join-Path $taskRoot 'tests\WorkflowChecks\Run.ps1') | Out-Host }
 if (!$DotnetPath) { $DotnetPath = (& (Join-Path $PSScriptRoot 'Get-BuildTools.ps1') -SkipCompiler).DotnetPath }
+if ($Mode -eq 'Preview') {
+    & (Join-Path $PSScriptRoot 'Start-Preview.ps1') -AutoCADVersion $AutoCADVersion -DotnetPath $DotnetPath
+    return
+}
 function Invoke-TaskDotnet([string[]]$Arguments) {
     & $DotnetPath @Arguments | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "dotnet failed: $($Arguments -join ' ')" }
@@ -60,5 +64,6 @@ if ($Suite -in @('All','Updates')) {
 if ($AutoCAD) {
     if ($AutoCADVersion -eq '2025') { throw 'Core Console checks currently support 2026 and 2027.' }
     if ($Suite -in @('All','MultiCopy')) { & (Join-Path $taskRoot 'tests\MultiCopyChecks\Run.ps1') -AutoCADVersion $AutoCADVersion -DotnetPath $DotnetPath | Out-Host }
+    if ($Suite -in @('All','Stamp')) { & (Join-Path $taskRoot 'tests\StampChecks\Run.ps1') -AutoCADVersion $AutoCADVersion -DotnetPath $DotnetPath | Out-Host }
     if ($Suite -eq 'All') { & (Join-Path $taskRoot 'tests\AlignSkewChecks\Run.ps1') -AutoCADVersion $AutoCADVersion -DotnetPath $DotnetPath | Out-Host }
 }

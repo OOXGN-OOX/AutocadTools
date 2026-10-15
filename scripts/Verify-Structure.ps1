@@ -6,7 +6,7 @@ if (Test-Path -LiteralPath (Join-Path $root '.git')) {
     $localFiles = @($trackedFiles | Where-Object { $_ -match '(^|/)(\.agents/|AGENTS(?:\.local)?\.md$)' })
     if ($localFiles.Count) { throw "Local working files must not be tracked: $($localFiles -join ', ')" }
 }
-$sourceFiles = Get-ChildItem -LiteralPath $root -Recurse -File | Where-Object { $_.Extension -in '.cs','.xaml' -and $_.FullName -notmatch '\\(bin|obj|artifacts|tests|\.agents)\\' }
+$sourceFiles = Get-ChildItem -LiteralPath $root -Recurse -File | Where-Object { $_.Extension -in '.cs','.xaml' -and $_.FullName -notmatch '\\(bin|obj|artifacts|tests|tools|\.agents)\\' }
 $commands = foreach ($file in $sourceFiles | Where-Object Extension -eq '.cs') {
     foreach ($match in [regex]::Matches([IO.File]::ReadAllText($file.FullName), 'CommandMethod\("([^"]+)"')) { $match.Groups[1].Value }
 }

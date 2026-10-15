@@ -27,7 +27,7 @@ namespace AutocadTools.Views
         {
             var palette = new ResourceDictionary
             {
-                Source = new Uri("/AutocadTools;component/Views/Styles.xaml", UriKind.Relative)
+                Source = new Uri("/" + typeof(UiTheme).Assembly.GetName().Name + ";component/Views/Styles.xaml", UriKind.Relative)
             };
             void Refresh()
             {

@@ -3,9 +3,10 @@
     <AutoCADVersion Condition="'$(AutoCADVersion)' == ''">2027</AutoCADVersion>
     <TargetFramework Condition="'$(AutoCADVersion)' == '2027'">net10.0-windows</TargetFramework>
     <TargetFramework Condition="'$(AutoCADVersion)' == '2025' Or '$(AutoCADVersion)' == '2026'">net8.0-windows</TargetFramework>
-    <AssemblyName>AutocadTools</AssemblyName>
+    <AssemblyName Condition="'$(PreviewAssemblyName)' == ''">AutocadTools</AssemblyName>
+    <AssemblyName Condition="'$(PreviewAssemblyName)' != ''">$(PreviewAssemblyName)</AssemblyName>
     <RootNamespace>AutocadTools</RootNamespace>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Product>Autocad Tools</Product>
     <Title>Autocad Tools</Title>
     <Copyright>Copyright (c) 2026 OOXGN (GitHub: OOXGN-OOX). All rights reserved.</Copyright>
@@ -24,7 +25,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="tests\**\*.cs" />
+    <Compile Remove="tools\**\*.cs" />
     <Page Remove="tests\**\*.xaml" />
+    <Page Remove="tools\**\*.xaml" />
     <PackageReference Include="itext7" Version="9.4.0" />
     <PackageReference Include="itext.bouncy-castle-adapter" Version="9.4.0" />
     <PackageReference Include="ClosedXML" Version="0.104.2" />
