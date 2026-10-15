@@ -10,6 +10,7 @@ namespace AutocadTools.Views
         public CustomerOrderWindow()
         {
             InitializeComponent();
+            UiTheme.Apply(this);
         }
 
         private void Ok_Click(object sender, RoutedEventArgs e)

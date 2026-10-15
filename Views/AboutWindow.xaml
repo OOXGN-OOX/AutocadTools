@@ -1,59 +1,45 @@
+<!-- Copyright (c) 2026 OOXGN. All rights reserved. -->
 <!-- SPDX-License-Identifier: LicenseRef-AutocadTools-Proprietary-NC-Attribution; see LICENSE in the repository root. -->
-<!-- ========================================================================
-     OOXGN - Copyright (c) 2026. All rights reserved.
-     Author: OOXGN | Project: AutocadTools
-     ======================================================================== -->
-<Window x:Class="AutocadTools.Views.AboutWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="О программе" Height="430" Width="500"
-        ResizeMode="NoResize" WindowStartupLocation="CenterScreen"
-        Background="#1D1D1D">
-
-    <Grid Margin="24">
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="AutocadTools.Views.AboutWindow" Title="О программе" Width="540" SizeToContent="Height" ResizeMode="NoResize" WindowStartupLocation="CenterOwner" Style="{DynamicResource ToolWindow}">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Styles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Grid Margin="28">
         <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-
-        <StackPanel Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center">
-            <Path Data="F0 M137 0H221C296.66 0 358 61.34 358 137C358 212.66 296.66 274 221 274H137C61.34 274 0 212.66 0 137C0 61.34 61.34 0 137 0Z M138 49H220C268.6 49 308 88.4 308 137C308 185.6 268.6 225 220 225H138C89.4 225 50 185.6 50 137C50 88.4 89.4 49 138 49Z M508 0H592C667.66 0 729 61.34 729 137C729 212.66 667.66 274 592 274H508C432.34 274 371 212.66 371 137C371 61.34 432.34 0 508 0Z M509 49H591C639.6 49 679 88.4 679 137C679 185.6 639.6 225 591 225H509C460.4 225 421 185.6 421 137C421 88.4 460.4 49 509 49Z M710 0H789L1079 274H998L891 176L785 274H701L854 137Z M1003 0H1086L947 121L908 82Z M1193 0H1366V49H1193C1145 49 1106 88 1106 137C1106 186 1145 225 1193 225H1316V163H1205V115H1333C1351 115 1366 129 1366 148V274H1193C1117 274 1056 213 1056 137C1056 61 1117 0 1193 0Z M1404 274V0H1444L1690 214V0H1747V274H1680L1461 70V274Z" Fill="#FAF9F7" Width="250" Height="40" Stretch="Uniform"/>
-            <TextBlock Text="Autocad Tools" FontSize="24" Foreground="#FFFFFF"
-                       HorizontalAlignment="Center" Margin="0,18,0,0"/>
+        <StackPanel Margin="0,0,0,24">
+            <Path Data="F0 M137 0H221C296.66 0 358 61.34 358 137C358 212.66 296.66 274 221 274H137C61.34 274 0 212.66 0 137C0 61.34 61.34 0 137 0Z M138 49H220C268.6 49 308 88.4 308 137C308 185.6 268.6 225 220 225H138C89.4 225 50 185.6 50 137C50 88.4 89.4 49 138 49Z M508 0H592C667.66 0 729 61.34 729 137C729 212.66 667.66 274 592 274H508C432.34 274 371 212.66 371 137C371 61.34 432.34 0 508 0Z M509 49H591C639.6 49 679 88.4 679 137C679 185.6 639.6 225 591 225H509C460.4 225 421 185.6 421 137C421 88.4 460.4 49 509 49Z M710 0H789L1079 274H998L891 176L785 274H701L854 137Z M1003 0H1086L947 121L908 82Z M1193 0H1366V49H1193C1145 49 1106 88 1106 137C1106 186 1145 225 1193 225H1316V163H1205V115H1333C1351 115 1366 129 1366 148V274H1193C1117 274 1056 213 1056 137C1056 61 1117 0 1193 0Z M1404 274V0H1444L1690 214V0H1747V274H1680L1461 70V274Z" Fill="{DynamicResource AccentColor}" Width="104" Height="18" Stretch="Uniform" HorizontalAlignment="Left" Margin="0,0,0,24"/>
+            <TextBlock Text="Autocad Tools" FontSize="26" FontWeight="SemiBold"/>
+            <TextBlock x:Name="VersionText" Foreground="{DynamicResource TextSecondary}" Margin="0,6,0,0"/>
+            <TextBlock Text="Оформление чертежей и выпуск документации" Foreground="{DynamicResource TextSecondary}" Margin="0,12,0,0"/>
         </StackPanel>
-
-        <!-- Version & Name -->
-        <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,0,0,8">
-            <TextBlock x:Name="VersionText"
-                       FontSize="12" 
-                       Foreground="#888888" 
-                       HorizontalAlignment="Center"/>
-            <TextBlock Text="Инструменты автоматизации для AutoCAD"
-                       FontSize="11" 
-                       Foreground="#666666" 
-                       HorizontalAlignment="Center"
-                       Margin="0,2,0,0"/>
-            <TextBlock Text="© 2026 OOXGN · OOXGN-OOX"
-                       FontSize="11" Foreground="#888888" HorizontalAlignment="Center"
-                       Margin="0,6,0,0"/>
-            <TextBlock Text="Некоммерческая лицензия" FontSize="11" Foreground="#888888" HorizontalAlignment="Center" Margin="0,3,0,0"/>
-            <CheckBox x:Name="AutoUpdateCheck" Content="Автоматически проверять обновления"
-                      Foreground="#CCCCCC" Margin="0,10,0,0" Checked="UpdateSettingsChanged" Unchecked="UpdateSettingsChanged"/>
-            <CheckBox x:Name="AutoInstallUpdateCheck" Content="Устанавливать обновления после закрытия AutoCAD"
-                      Foreground="#CCCCCC" Margin="0,5,0,0" Checked="UpdateSettingsChanged" Unchecked="UpdateSettingsChanged"/>
-            <CheckBox x:Name="PrereleaseUpdateCheck" Content="Включать предварительные выпуски"
-                      Foreground="#CCCCCC" Margin="0,5,0,0" Checked="UpdateSettingsChanged" Unchecked="UpdateSettingsChanged"/>
-        </StackPanel>
-
-        <!-- Footer -->
-        <TextBlock Grid.Row="2" HorizontalAlignment="Center">
-            <Hyperlink NavigateUri="https://github.com/OOXGN-OOX/AutocadTools"
-                       RequestNavigate="Hyperlink_RequestNavigate"
-                       Foreground="#555555"
-                       TextDecorations="None">
-                Autocad Tools на GitHub
-            </Hyperlink>
-        </TextBlock>
+        <GroupBox Grid.Row="1" Header="Обновления">
+            <StackPanel Margin="0,10,0,0">
+                <CheckBox x:Name="AutoUpdateCheck" Content="Проверять обновления автоматически" Checked="UpdateSettingsChanged" Unchecked="UpdateSettingsChanged"/>
+                <CheckBox x:Name="AutoInstallUpdateCheck" Content="Устанавливать после закрытия AutoCAD" Checked="UpdateSettingsChanged" Unchecked="UpdateSettingsChanged"/>
+                <TextBlock Text="Установка начнётся, когда закрыты все окна AutoCAD." Style="{StaticResource LabelStyle}" Margin="20,0,0,6"/>
+                <CheckBox x:Name="PrereleaseUpdateCheck" Content="Включать предварительные выпуски" Checked="UpdateSettingsChanged" Unchecked="UpdateSettingsChanged"/>
+            </StackPanel>
+        </GroupBox>
+        <Grid Grid.Row="2" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="© 2026 OOXGN" Style="{StaticResource LabelStyle}"/>
+                <TextBlock Text="Некоммерческая лицензия" Style="{StaticResource LabelStyle}" Margin="0,10,0,0"/>
+            </StackPanel>
+            <TextBlock Grid.Column="1" VerticalAlignment="Center">
+                <Hyperlink NavigateUri="https://github.com/OOXGN-OOX/AutocadTools" RequestNavigate="Hyperlink_RequestNavigate" Foreground="{DynamicResource TextPrimary}">Проект на GitHub</Hyperlink>
+            </TextBlock>
+        </Grid>
     </Grid>
 </Window>

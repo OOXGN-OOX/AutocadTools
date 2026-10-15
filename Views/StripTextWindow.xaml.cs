@@ -14,6 +14,7 @@ namespace AutocadTools.Views
         public StripTextWindow()
         {
             InitializeComponent();
+            UiTheme.Apply(this);
         }
     }
 }

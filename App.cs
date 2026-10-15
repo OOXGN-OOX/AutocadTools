@@ -8,9 +8,8 @@
 // File: AutocadTools/App.cs
 
 using System;
-using System.Reflection;
+using System.Linq;
 using System.Windows.Input;
-using System.Windows.Media.Imaging;
 
 using Autodesk.AutoCAD.Runtime;
 using Autodesk.Windows;
@@ -32,6 +31,8 @@ namespace AutocadTools
 
         private static ContextMenuExtension _contextMenu;
         private DateTime _nextUiCheckUtc;
+        private bool? _darkRibbon;
+        private bool? _highContrastRibbon;
 
         public void Initialize()
         {
@@ -125,10 +126,21 @@ namespace AutocadTools
             }
             tab.Name = RibbonTabTitle;
             tab.Title = RibbonTabTitle;
+            bool dark = System.Convert.ToInt32(AcadApp.GetSystemVariable("COLORTHEME")) == 0;
+            bool highContrast = System.Windows.SystemParameters.HighContrast;
             if (tab.Panels.Count > 0)
             {
+                if (_darkRibbon != dark || _highContrastRibbon != highContrast)
+                {
+                    foreach (var button in tab.Panels.SelectMany(panel => panel.Source.Items).OfType<RibbonButton>())
+                        if (button.Tag is string command) button.LargeImage = Views.ToolIcons.Create(command, dark);
+                    _darkRibbon = dark;
+                    _highContrastRibbon = highContrast;
+                }
                 return;
             }
+            _darkRibbon = dark;
+            _highContrastRibbon = highContrast;
             tab.IsActive = true;
 
             // =========================
@@ -138,13 +150,13 @@ namespace AutocadTools
             var toolsPanel = new RibbonPanel { Source = toolsPanelSource };
             tab.Panels.Add(toolsPanel);
 
-            AddButton(toolsPanelSource, "Преобразовать\nв аксонометрию", "axon.png", "Align_Den");
-            AddButton(toolsPanelSource, "Автонумерация", "autonum.png", "AUTONUM");
-            AddButton(toolsPanelSource, "Выбор по\nобразцу", "selectsim.png", "WSELECT");
-            AddButton(toolsPanelSource, "Сумма\nдлин", "sumlen.png", "SUMLENGTH");
-            AddButton(toolsPanelSource, "Мульти-\nкопирование", "multicopy.png", "MULTICOPY");
-            AddButton(toolsPanelSource, "Подготовка\nпланов", "planprep.png", "PLANPREP");
-            AddButton(toolsPanelSource, "Таблица\nExcel", "tableedit.png", "AUTOCADTOOLS_TABLEEXCEL");
+            AddButton(toolsPanelSource, "Преобразовать\nв аксонометрию", "Align_Den");
+            AddButton(toolsPanelSource, "Автонумерация", "AUTONUM");
+            AddButton(toolsPanelSource, "Выбор по\nобразцу", "WSELECT");
+            AddButton(toolsPanelSource, "Сумма\nдлин", "SUMLENGTH");
+            AddButton(toolsPanelSource, "Мульти\nкопирование", "MULTICOPY");
+            AddButton(toolsPanelSource, "Подготовка\nпланов", "PLANPREP");
+            AddButton(toolsPanelSource, "Таблица\nExcel", "AUTOCADTOOLS_TABLEEXCEL");
 
 
             // =========================
@@ -154,9 +166,9 @@ namespace AutocadTools
             var cleanPanel = new RibbonPanel { Source = cleanPanelSource };
             tab.Panels.Add(cleanPanel);
 
-            AddButton(cleanPanelSource, "Очистка\nчертежа", "clean.png", "CLEANDWG");
-            AddButton(cleanPanelSource, "Очистить\nневыбранные", "clean_invert.png", "CLEANUNSELECTED");
-            AddButton(cleanPanelSource, "Сброс\nтекста", "srtimtext.png", "STRIPTEXT");
+            AddButton(cleanPanelSource, "Очистка\nчертежа", "CLEANDWG");
+            AddButton(cleanPanelSource, "Очистить\nневыбранные", "CLEANUNSELECTED");
+            AddButton(cleanPanelSource, "Сброс\nтекста", "STRIPTEXT");
 
             // =========================
             // ПАНЕЛЬ: ВЫПУСК
@@ -165,11 +177,11 @@ namespace AutocadTools
             var releasePanel = new RibbonPanel { Source = releasePanelSource };
             tab.Panels.Add(releasePanel);
 
-            AddButton(releasePanelSource, "Штамп", "stamp.png", "AUTOCADTOOLS_STAMP");
-            AddButton(releasePanelSource, "Вставить\nформатку", "wplot.png", "AUTOCADTOOLS_INSERTFORMAT");
-            AddButton(releasePanelSource, "Печать", "wplot.png", "AUTOCADTOOLS_BATCHPLOT");
-            AddButton(releasePanelSource, "Подготовить\nвсе блоки", "wplot.png", "AUTOCADTOOLS_BLOCKS_STAGE1");
-            AddButton(releasePanelSource, "Сформировать\nзаказчику", "dwgexport.png", "AUTOCADTOOLS_CUSTOMERORDER");
+            AddButton(releasePanelSource, "Штамп", "AUTOCADTOOLS_STAMP");
+            AddButton(releasePanelSource, "Вставить\nформатку", "AUTOCADTOOLS_INSERTFORMAT");
+            AddButton(releasePanelSource, "Печать", "AUTOCADTOOLS_BATCHPLOT");
+            AddButton(releasePanelSource, "Подготовить\nвсе блоки", "AUTOCADTOOLS_BLOCKS_STAGE1");
+            AddButton(releasePanelSource, "Сформировать\nзаказчику", "AUTOCADTOOLS_CUSTOMERORDER");
 
             // =========================
             // ПАНЕЛЬ: СПРАВКА
@@ -178,11 +190,11 @@ namespace AutocadTools
             var helpPanel = new RibbonPanel { Source = helpPanelSource };
             tab.Panels.Add(helpPanel);
 
-            AddButton(helpPanelSource, "Инфо", "info.png", "AUTOCADTOOLS_INFO");
-            AddButton(helpPanelSource, "Проверить\nобновления", "info.png", "AUTOCADTOOLS_CHECKUPDATES");
+            AddButton(helpPanelSource, "О программе", "AUTOCADTOOLS_INFO");
+            AddButton(helpPanelSource, "Проверить\nобновления", "AUTOCADTOOLS_CHECKUPDATES");
         }
 
-        private void AddButton(RibbonPanelSource source, string text, string iconName, string commandName)
+        private void AddButton(RibbonPanelSource source, string text, string commandName)
         {
             var button = new RibbonButton
             {
@@ -191,34 +203,14 @@ namespace AutocadTools
                 ShowImage = true,
                 Size = RibbonItemSize.Large,
                 Orientation = WpfOrientation.Vertical,
-                LargeImage = GetIcon(iconName),
+                LargeImage = Views.ToolIcons.Create(commandName, _darkRibbon ?? true),
+                Tag = commandName,
                 CommandHandler = new RibbonCommand(commandName)
             };
             source.Items.Add(button);
         }
 
-        private System.Windows.Media.ImageSource GetIcon(string fileName)
-        {
-            string assemblyName = Assembly.GetExecutingAssembly().GetName().Name;
-            string uriPath = $"pack://application:,,,/{assemblyName};component/Resources/{fileName}";
 
-            try
-            {
-                var bmp = new BitmapImage();
-                bmp.BeginInit();
-                bmp.UriSource = new Uri(uriPath, UriKind.Absolute);
-                bmp.CacheOption = BitmapCacheOption.OnLoad;
-                bmp.EndInit();
-                bmp.Freeze();
-                return bmp;
-            }
-            catch (System.Exception ex)
-            {
-                AcadApp.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
-                    $"\n[Autocad Tools Icon] Не загрузилась иконка '{fileName}' по URI: {uriPath}\nПричина: {ex.Message}\n");
-                return null;
-            }
-        }
     }
 
     public class RibbonCommand : ICommand

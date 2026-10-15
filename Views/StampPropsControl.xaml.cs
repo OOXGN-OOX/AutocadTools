@@ -15,6 +15,7 @@ namespace AutocadTools.Views
         public StampWindow(ViewModels.StampPropsViewModel viewModel)
         {
             InitializeComponent();
+            UiTheme.Apply(this);
             DataContext = viewModel;
         }
     }

@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <strong>OOXGN · разработка v0.1.0</strong><br>
+  <strong>Версия 0.1.0</strong><br>
   AutoCAD 2025–2027 · Windows x64<br>
   C# · WPF · .NET 8 / 10
 </p>

@@ -17,7 +17,8 @@ namespace AutocadTools.Views
     {
         public AlignSkewWindow()
         {
-            InitializeComponent(); // <--- ЭТО САМАЯ ВАЖНАЯ СТРОКА. БЕЗ НЕЕ ОКНО ПУСТОЕ.
+            InitializeComponent();
+            UiTheme.Apply(this);
         }
     }
 

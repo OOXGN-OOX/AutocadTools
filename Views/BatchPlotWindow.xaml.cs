@@ -27,6 +27,7 @@ namespace AutocadTools.Views
         public BatchPlotWindow()
         {
             InitializeComponent();
+            UiTheme.Apply(this);
 
             // DataContext задаём тут
             var vm = new BatchPlotViewModel();

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>AutocadTools</AssemblyName>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Page Include="..\..\Views\Styles.xaml" Link="Views\Styles.xaml"/>
+    <Compile Include="..\..\Views\UiTheme.cs" Link="UiTheme.cs"/>
+    <Compile Include="..\..\Views\ToolIcons.cs" Link="ToolIcons.cs"/>
+    <Compile Include="..\..\Models\CleanDwgOptions.cs" Link="CleanDwgOptions.cs"/>
+    <Compile Include="..\..\Models\PlanPrepOptions.cs" Link="PlanPrepOptions.cs"/>
+    <Compile Include="..\..\Models\SelectSimilarOptions.cs" Link="SelectSimilarOptions.cs"/>
+    <Compile Include="..\..\Models\StripTextOptions.cs" Link="StripTextOptions.cs"/>
+  </ItemGroup>
+</Project>

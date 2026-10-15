@@ -1,6 +1,6 @@
 param(
     [ValidateSet('Check','Test','Build')][string]$Mode = 'Check',
-    [ValidateSet('All','MultiCopy','Updates','Pdf')][string]$Suite = 'All',
+    [ValidateSet('All','MultiCopy','Updates','Pdf','UI')][string]$Suite = 'All',
     [ValidateSet('2025','2026','2027')][string]$AutoCADVersion = '2026',
     [switch]$AutoCAD,
     [string]$DotnetPath
@@ -31,6 +31,15 @@ if ($Suite -in @('All','MultiCopy')) {
 }
 if ($Suite -in @('All','Pdf')) {
     Invoke-TaskDotnet @('run', '--project', (Join-Path $taskRoot 'tests\PdfChecks\PdfChecks.csproj'), '-c', 'Debug')
+}
+if ($Suite -in @('All','UI')) {
+    Invoke-TaskDotnet @('build', (Join-Path $taskRoot 'tests\UiChecks\UiChecks.csproj'), '-c', 'Debug')
+    $taskUiRuntime = $DotnetPath
+    if (!@(& $DotnetPath --list-runtimes | Where-Object { $_ -match '^Microsoft.WindowsDesktop.App 8\.' }).Count) {
+        $taskUiRuntime = (Get-Command dotnet.exe -ErrorAction Stop).Source
+    }
+    & $taskUiRuntime exec (Join-Path $taskRoot 'tests\UiChecks\bin\Debug\net8.0-windows\AutocadTools.dll') $taskRoot | Out-Host
+    if ($LASTEXITCODE -ne 0) { throw 'WPF layout checks failed.' }
 }
 if ($Suite -in @('All','Updates')) {
     & (Join-Path $taskRoot 'tests\UpdateRunnerChecks\Run.ps1') | Out-Host

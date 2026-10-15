@@ -20,6 +20,7 @@ namespace AutocadTools.Views
         public AutoNumSettingsWindow(AutoNumSettingsViewModel viewModel)
         {
             InitializeComponent();
+            UiTheme.Apply(this);
             ViewModel = viewModel;
             DataContext = viewModel;
 

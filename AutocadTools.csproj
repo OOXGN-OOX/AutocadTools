@@ -46,10 +46,8 @@
     <Reference Include="AdWindows"><HintPath>$(AutoCADPath)\AdWindows.dll</HintPath><Private>False</Private></Reference>
   </ItemGroup>
   <ItemGroup>
-    <None Remove="Resources\**\*.png" />
     <EmbeddedResource Include="Assets\UpdateRunner.ps1" LogicalName="AutocadTools.UpdateRunner.ps1" />
     <None Update="Assets\WM_FORMAT.dwg" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Resource Include="Resources\**\*.png" />
   </ItemGroup>
   <Target Name="ValidateAutoCADReferences" BeforeTargets="ResolveReferences">
     <Error Condition="'$(AutoCADVersion)' != '2025' And '$(AutoCADVersion)' != '2026' And '$(AutoCADVersion)' != '2027'" Text="Supported AutoCADVersion values: 2025, 2026, 2027." />

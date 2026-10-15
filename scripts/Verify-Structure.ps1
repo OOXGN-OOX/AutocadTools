@@ -15,12 +15,14 @@ if (@($expected | Where-Object { $_ -notin $commands }).Count -or @($commands | 
 $xmlFiles = Get-ChildItem -LiteralPath $root -Recurse -File | Where-Object { $_.Extension -in '.xaml','.xml','.csproj','.props' -and $_.FullName -notmatch '\\(bin|obj|artifacts|tests|\.agents)\\' }
 foreach ($file in $xmlFiles) { $null = [xml][IO.File]::ReadAllText($file.FullName) }
 $app = [IO.File]::ReadAllText((Join-Path $root 'App.cs'))
-foreach ($match in [regex]::Matches($app, 'AddButton\([^;]+?"([^"]+\.png)"')) {
-    if (!(Test-Path -LiteralPath (Join-Path $root ('Resources\' + $match.Groups[1].Value)))) { throw 'Missing ribbon icon.' }
+$iconSource = [IO.File]::ReadAllText((Join-Path $root 'Views\ToolIcons.cs'))
+$iconCommands = @([regex]::Matches($iconSource, '\["([^"]+)"\]') | ForEach-Object { $_.Groups[1].Value })
+foreach ($match in [regex]::Matches($app, 'AddButton\([^;]+,\s*"([^"]+)"\);')) {
+    if ($match.Groups[1].Value -notin $iconCommands) { throw "Missing vector icon: $($match.Groups[1].Value)" }
 }
 $vm = [IO.File]::ReadAllText((Join-Path $root 'ViewModels\StampPropsViewModel.cs'))
 $xaml = [IO.File]::ReadAllText((Join-Path $root 'Views\StampPropsControl.xaml'))
 foreach ($match in [regex]::Matches($xaml, 'FieldsMap\[([^\]]+)\]')) {
     if (!$vm.Contains('"' + $match.Groups[1].Value + '"')) { throw "Unmatched stamp binding: $($match.Groups[1].Value)" }
 }
-Write-Output "PASS: $(@($commands).Count) commands; $(@($xmlFiles).Count) XML/XAML; namespaces, ribbon icons and stamp bindings."
+Write-Output "PASS: $(@($commands).Count) commands; $(@($xmlFiles).Count) XML/XAML; namespaces, vector icons and stamp bindings."

@@ -13,6 +13,7 @@ namespace AutocadTools.Views
         public PlanPrepWindow()
         {
             InitializeComponent();
+            UiTheme.Apply(this);
         }
     }
 }

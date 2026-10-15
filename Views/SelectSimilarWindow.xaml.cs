@@ -13,6 +13,7 @@ namespace AutocadTools.Views
         public SelectSimilarWindow()
         {
             InitializeComponent();
+            UiTheme.Apply(this);
         }
     }
 }

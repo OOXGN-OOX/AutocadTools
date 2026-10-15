@@ -11,9 +11,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:AutocadTools.ViewModels"
         mc:Ignorable="d"
-        Title="Свойства штампа Autocad Tools"
+        Title="Свойства штампа"
         Height="550" Width="1080"
-        Background="#1E1E1E"
+        Style="{DynamicResource ToolWindow}" UseLayoutRounding="False"
         WindowStyle="SingleBorderWindow"
         ResizeMode="CanResize"
         ShowInTaskbar="False"
@@ -21,68 +21,35 @@
 
     <!-- Ресурсы стилей -->
     <Window.Resources>
-        <!-- Стиль TextBox -->
-        <Style TargetType="TextBox">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="Padding" Value="2"/>
-            <Setter Property="FontSize" Value="11"/>
-            <Setter Property="CaretBrush" Value="White"/>
-            <Setter Property="Validation.ErrorTemplate" Value="{x:Null}"/>
-        </Style>
-
-        <!-- Границы ячеек -->
-        <Style TargetType="Border">
-            <Setter Property="BorderBrush" Value="#666"/>
-            <Setter Property="BorderThickness" Value="0.5"/>
-        </Style>
-
-        <!-- Подписи -->
-        <Style TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#555"/>
-            <Setter Property="FontSize" Value="8"/>
-            <Setter Property="VerticalAlignment" Value="Top"/>
-            <Setter Property="HorizontalAlignment" Value="Left"/>
-            <Setter Property="Margin" Value="2,0,0,0"/>
-            <Setter Property="IsHitTestVisible" Value="False"/>
-        </Style>
-
-        <!-- Button Style -->
-        <Style TargetType="Button" x:Key="StampButton">
-            <Setter Property="Background" Value="#333337"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#434346"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="16,8"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="border" Background="{TemplateBinding Background}" 
-                                BorderBrush="{TemplateBinding BorderBrush}" 
-                                BorderThickness="{TemplateBinding BorderThickness}" 
-                                CornerRadius="4" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#4E4E52"/>
-                                <Setter TargetName="border" Property="BorderBrush" Value="#666666"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Primary Button Style -->
-        <Style TargetType="Button" x:Key="PrimaryButton" BasedOn="{StaticResource StampButton}">
-            <Setter Property="Background" Value="#555555"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="Styles.xaml"/></ResourceDictionary.MergedDictionaries>
+            <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="MinHeight" Value="0"/>
+                <Setter Property="Padding" Value="2"/>
+                <Setter Property="FontSize" Value="11"/>
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox">
+                    <Border x:Name="Cell" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1">
+                        <ScrollViewer x:Name="PART_ContentHost" Focusable="False"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Cell" Property="Background" Value="{DynamicResource HoverBackground}"/></Trigger>
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Cell" Property="BorderBrush" Value="{DynamicResource AccentColor}"/></Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate></Setter.Value></Setter>
+            </Style>
+            <Style x:Key="StampCellBorder" TargetType="Border"><Setter Property="BorderBrush" Value="{DynamicResource ControlBorder}"/><Setter Property="BorderThickness" Value="0.5"/></Style>
+            <Style TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                <Setter Property="FontSize" Value="8"/>
+                <Setter Property="VerticalAlignment" Value="Top"/>
+                <Setter Property="HorizontalAlignment" Value="Left"/>
+                <Setter Property="Margin" Value="2,0,0,0"/>
+                <Setter Property="IsHitTestVisible" Value="False"/>
+            </Style>
+        </ResourceDictionary>
     </Window.Resources>
 
     <Grid Margin="10">
@@ -110,14 +77,14 @@
                     </Grid.RowDefinitions>
 
                     <!-- Взам. инв № -->
-                    <Border Grid.Row="1" Background="#2D2D30" BorderThickness="1" BorderBrush="#888" Height="95" Margin="0,0,0,-1">
+                    <Border Style="{StaticResource StampCellBorder}" Grid.Row="1" Background="{DynamicResource InputBackground}" BorderThickness="1" BorderBrush="{DynamicResource TextSecondary}" Height="95" Margin="0,0,0,-1">
                         <Grid>
                             <TextBlock Text="Взам. инв. №" VerticalAlignment="Center" HorizontalAlignment="Right">
                                 <TextBlock.LayoutTransform>
                                     <RotateTransform Angle="-90"/>
                                 </TextBlock.LayoutTransform>
                             </TextBlock>
-                            <TextBox Text="{Binding FieldsMap[Взам.инв.№].Value, UpdateSourceTrigger=PropertyChanged}">
+                            <TextBox AutomationProperties.Name="Взам.инв.№" Text="{Binding FieldsMap[Взам.инв.№].Value, UpdateSourceTrigger=PropertyChanged}">
                                 <TextBox.LayoutTransform>
                                     <RotateTransform Angle="-90"/>
                                 </TextBox.LayoutTransform>
@@ -126,14 +93,14 @@
                     </Border>
 
                     <!-- Подп и дата -->
-                    <Border Grid.Row="2" Background="#2D2D30" BorderThickness="1" BorderBrush="#888" Height="133" Margin="0,0,0,-1">
+                    <Border Style="{StaticResource StampCellBorder}" Grid.Row="2" Background="{DynamicResource InputBackground}" BorderThickness="1" BorderBrush="{DynamicResource TextSecondary}" Height="133" Margin="0,0,0,-1">
                         <Grid>
                             <TextBlock Text="Подп. и дата" VerticalAlignment="Center" HorizontalAlignment="Right">
                                 <TextBlock.LayoutTransform>
                                     <RotateTransform Angle="-90"/>
                                 </TextBlock.LayoutTransform>
                             </TextBlock>
-                            <TextBox Text="{Binding FieldsMap[Подп.и.дата].Value, UpdateSourceTrigger=PropertyChanged}">
+                            <TextBox AutomationProperties.Name="Подп.и.дата" Text="{Binding FieldsMap[Подп.и.дата].Value, UpdateSourceTrigger=PropertyChanged}">
                                 <TextBox.LayoutTransform>
                                     <RotateTransform Angle="-90"/>
                                 </TextBox.LayoutTransform>
@@ -142,14 +109,14 @@
                     </Border>
 
                     <!-- Инв № подл -->
-                    <Border Grid.Row="3" Background="#2D2D30" BorderThickness="1" BorderBrush="#888" Height="95">
+                    <Border Style="{StaticResource StampCellBorder}" Grid.Row="3" Background="{DynamicResource InputBackground}" BorderThickness="1" BorderBrush="{DynamicResource TextSecondary}" Height="95">
                         <Grid>
                             <TextBlock Text="Инв. № подл." VerticalAlignment="Center" HorizontalAlignment="Right">
                                 <TextBlock.LayoutTransform>
                                     <RotateTransform Angle="-90"/>
                                 </TextBlock.LayoutTransform>
                             </TextBlock>
-                            <TextBox Text="{Binding FieldsMap[Инв.№].Value, UpdateSourceTrigger=PropertyChanged}">
+                            <TextBox AutomationProperties.Name="Инв.№" Text="{Binding FieldsMap[Инв.№].Value, UpdateSourceTrigger=PropertyChanged}">
                                 <TextBox.LayoutTransform>
                                     <RotateTransform Angle="-90"/>
                                 </TextBox.LayoutTransform>
@@ -159,7 +126,7 @@
                 </Grid>
 
                 <!-- === ЗОНА 2 и 3: ОСНОВНОЙ БЛОК === -->
-                <Border Grid.Column="2" BorderThickness="2" BorderBrush="#888" Background="#2D2D30" Width="703" Height="209" VerticalAlignment="Bottom">
+                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2" BorderThickness="2" BorderBrush="{DynamicResource TextSecondary}" Background="{DynamicResource InputBackground}" Width="703" Height="209" VerticalAlignment="Bottom">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="247*"/>
@@ -192,12 +159,12 @@
                                     <ColumnDefinition Width="57*"/>
                                     <ColumnDefinition Width="38*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0"><TextBox Text="{Binding FieldsMap[Изм.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="1"><TextBox Text="{Binding FieldsMap[Кол.уч.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="2"><TextBox Text="{Binding FieldsMap[Лист.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="3"><TextBox Text="{Binding FieldsMap[Nдок.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="4"><TextBox IsReadOnly="True" Background="#222"/></Border>
-                                <Border Grid.Column="5"><TextBox Text="{Binding FieldsMap[Дата.10].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox AutomationProperties.Name="Изм.4" Text="{Binding FieldsMap[Изм.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox AutomationProperties.Name="Кол.уч.4" Text="{Binding FieldsMap[Кол.уч.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><TextBox AutomationProperties.Name="Лист.4" Text="{Binding FieldsMap[Лист.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox AutomationProperties.Name="Nдок.4" Text="{Binding FieldsMap[Nдок.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="4"><TextBox IsReadOnly="True" Background="{DynamicResource InputBackground}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="5"><TextBox AutomationProperties.Name="Дата.10" Text="{Binding FieldsMap[Дата.10].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
                             </Grid>
 
                             <!-- Изм 3 -->
@@ -210,12 +177,12 @@
                                     <ColumnDefinition Width="57*"/>
                                     <ColumnDefinition Width="38*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0"><TextBox Text="{Binding FieldsMap[Изм.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="1"><TextBox Text="{Binding FieldsMap[Кол.уч.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="2"><TextBox Text="{Binding FieldsMap[Лист.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="3"><TextBox Text="{Binding FieldsMap[Nдок.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="4"><TextBox IsReadOnly="True" Background="#222"/></Border>
-                                <Border Grid.Column="5"><TextBox Text="{Binding FieldsMap[Дата.9].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox AutomationProperties.Name="Изм.3" Text="{Binding FieldsMap[Изм.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox AutomationProperties.Name="Кол.уч.3" Text="{Binding FieldsMap[Кол.уч.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><TextBox AutomationProperties.Name="Лист.3" Text="{Binding FieldsMap[Лист.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox AutomationProperties.Name="Nдок.3" Text="{Binding FieldsMap[Nдок.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="4"><TextBox IsReadOnly="True" Background="{DynamicResource InputBackground}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="5"><TextBox AutomationProperties.Name="Дата.9" Text="{Binding FieldsMap[Дата.9].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
                             </Grid>
 
                             <!-- Изм 2 -->
@@ -228,12 +195,12 @@
                                     <ColumnDefinition Width="57*"/>
                                     <ColumnDefinition Width="38*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0"><TextBox Text="{Binding FieldsMap[Изм.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="1"><TextBox Text="{Binding FieldsMap[Кол.уч.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="2"><TextBox Text="{Binding FieldsMap[Лист.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="3"><TextBox Text="{Binding FieldsMap[Nдок.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="4"><TextBox IsReadOnly="True" Background="#222"/></Border>
-                                <Border Grid.Column="5"><TextBox Text="{Binding FieldsMap[Дата.8].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox AutomationProperties.Name="Изм.2" Text="{Binding FieldsMap[Изм.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox AutomationProperties.Name="Кол.уч.2" Text="{Binding FieldsMap[Кол.уч.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><TextBox AutomationProperties.Name="Лист.2" Text="{Binding FieldsMap[Лист.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox AutomationProperties.Name="Nдок.2" Text="{Binding FieldsMap[Nдок.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="4"><TextBox IsReadOnly="True" Background="{DynamicResource InputBackground}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="5"><TextBox AutomationProperties.Name="Дата.8" Text="{Binding FieldsMap[Дата.8].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
                             </Grid>
 
                             <!-- Изм 1 -->
@@ -246,12 +213,12 @@
                                     <ColumnDefinition Width="57*"/>
                                     <ColumnDefinition Width="38*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0"><TextBox Text="{Binding FieldsMap[Изм.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="1"><TextBox Text="{Binding FieldsMap[Кол.уч.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="2"><TextBox Text="{Binding FieldsMap[Лист.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="3"><TextBox Text="{Binding FieldsMap[Nдок.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="4"><TextBox IsReadOnly="True" Background="#222"/></Border>
-                                <Border Grid.Column="5"><TextBox Text="{Binding FieldsMap[Дата.7].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox AutomationProperties.Name="Изм.1" Text="{Binding FieldsMap[Изм.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox AutomationProperties.Name="Кол.уч.1" Text="{Binding FieldsMap[Кол.уч.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><TextBox AutomationProperties.Name="Лист.1" Text="{Binding FieldsMap[Лист.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox AutomationProperties.Name="Nдок.1" Text="{Binding FieldsMap[Nдок.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="4"><TextBox IsReadOnly="True" Background="{DynamicResource InputBackground}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="5"><TextBox AutomationProperties.Name="Дата.7" Text="{Binding FieldsMap[Дата.7].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
                             </Grid>
 
                             <!-- Заголовки -->
@@ -264,12 +231,12 @@
                                     <ColumnDefinition Width="57*"/>
                                     <ColumnDefinition Width="38*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0"><TextBlock Text="Изм." HorizontalAlignment="Center"/></Border>
-                                <Border Grid.Column="1"><TextBlock Text="Кол." HorizontalAlignment="Center"/></Border>
-                                <Border Grid.Column="2"><TextBlock Text="Лист" HorizontalAlignment="Center"/></Border>
-                                <Border Grid.Column="3"><TextBlock Text="№док." HorizontalAlignment="Center"/></Border>
-                                <Border Grid.Column="4"><TextBlock Text="Подп." HorizontalAlignment="Center"/></Border>
-                                <Border Grid.Column="5"><TextBlock Text="Дата" HorizontalAlignment="Center"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBlock Text="Изм." HorizontalAlignment="Center"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBlock Text="Кол." HorizontalAlignment="Center"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><TextBlock Text="Лист" HorizontalAlignment="Center"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBlock Text="№док." HorizontalAlignment="Center"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="4"><TextBlock Text="Подп." HorizontalAlignment="Center"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="5"><TextBlock Text="Дата" HorizontalAlignment="Center"/></Border>
                             </Grid>
 
                             <!-- Подписанты Row 5-10 -->
@@ -280,10 +247,10 @@
                                     <ColumnDefinition Width="57*"/>
                                     <ColumnDefinition Width="38*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0"><TextBox Text="{Binding FieldsMap[Должн.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="1"><TextBox Text="{Binding FieldsMap[Фам.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="2"><TextBox IsReadOnly="True" Background="#222"/></Border>
-                                <Border Grid.Column="3"><TextBox Text="{Binding FieldsMap[Дата.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox AutomationProperties.Name="Должн.1" Text="{Binding FieldsMap[Должн.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox AutomationProperties.Name="Фам.1" Text="{Binding FieldsMap[Фам.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><TextBox IsReadOnly="True" Background="{DynamicResource InputBackground}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox AutomationProperties.Name="Дата.1" Text="{Binding FieldsMap[Дата.1].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
                             </Grid>
                             <Grid Grid.Row="6">
                                 <Grid.ColumnDefinitions>
@@ -292,10 +259,10 @@
                                     <ColumnDefinition Width="57*"/>
                                     <ColumnDefinition Width="38*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0"><TextBox Text="{Binding FieldsMap[Должн.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="1"><TextBox Text="{Binding FieldsMap[Фам.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="2"><TextBox IsReadOnly="True" Background="#222"/></Border>
-                                <Border Grid.Column="3"><TextBox Text="{Binding FieldsMap[Дата.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox AutomationProperties.Name="Должн.2" Text="{Binding FieldsMap[Должн.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox AutomationProperties.Name="Фам.2" Text="{Binding FieldsMap[Фам.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><TextBox IsReadOnly="True" Background="{DynamicResource InputBackground}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox AutomationProperties.Name="Дата.2" Text="{Binding FieldsMap[Дата.2].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
                             </Grid>
                             <Grid Grid.Row="7">
                                 <Grid.ColumnDefinitions>
@@ -304,10 +271,10 @@
                                     <ColumnDefinition Width="57*"/>
                                     <ColumnDefinition Width="38*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0"><TextBox Text="{Binding FieldsMap[Должн.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="1"><TextBox Text="{Binding FieldsMap[Фам.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="2"><TextBox IsReadOnly="True" Background="#222"/></Border>
-                                <Border Grid.Column="3"><TextBox Text="{Binding FieldsMap[Дата.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox AutomationProperties.Name="Должн.3" Text="{Binding FieldsMap[Должн.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox AutomationProperties.Name="Фам.3" Text="{Binding FieldsMap[Фам.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><TextBox IsReadOnly="True" Background="{DynamicResource InputBackground}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox AutomationProperties.Name="Дата.3" Text="{Binding FieldsMap[Дата.3].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
                             </Grid>
                             <Grid Grid.Row="8">
                                 <Grid.ColumnDefinitions>
@@ -316,10 +283,10 @@
                                     <ColumnDefinition Width="57*"/>
                                     <ColumnDefinition Width="38*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0"><TextBox Text="{Binding FieldsMap[Должн.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="1"><TextBox Text="{Binding FieldsMap[Фам.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="2"><TextBox IsReadOnly="True" Background="#222"/></Border>
-                                <Border Grid.Column="3"><TextBox Text="{Binding FieldsMap[Дата.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox AutomationProperties.Name="Должн.4" Text="{Binding FieldsMap[Должн.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox AutomationProperties.Name="Фам.4" Text="{Binding FieldsMap[Фам.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><TextBox IsReadOnly="True" Background="{DynamicResource InputBackground}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox AutomationProperties.Name="Дата.4" Text="{Binding FieldsMap[Дата.4].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
                             </Grid>
                             <Grid Grid.Row="9">
                                 <Grid.ColumnDefinitions>
@@ -328,10 +295,10 @@
                                     <ColumnDefinition Width="57*"/>
                                     <ColumnDefinition Width="38*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0"><TextBox Text="{Binding FieldsMap[Должн.5].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="1"><TextBox Text="{Binding FieldsMap[Фам.5].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="2"><TextBox IsReadOnly="True" Background="#222"/></Border>
-                                <Border Grid.Column="3"><TextBox Text="{Binding FieldsMap[Дата.5].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox AutomationProperties.Name="Должн.5" Text="{Binding FieldsMap[Должн.5].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox AutomationProperties.Name="Фам.5" Text="{Binding FieldsMap[Фам.5].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><TextBox IsReadOnly="True" Background="{DynamicResource InputBackground}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox AutomationProperties.Name="Дата.5" Text="{Binding FieldsMap[Дата.5].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
                             </Grid>
                             <Grid Grid.Row="10">
                                 <Grid.ColumnDefinitions>
@@ -340,10 +307,10 @@
                                     <ColumnDefinition Width="57*"/>
                                     <ColumnDefinition Width="38*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0"><TextBox Text="{Binding FieldsMap[Должн.6].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="1"><TextBox Text="{Binding FieldsMap[Фам.6].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
-                                <Border Grid.Column="2"><TextBox IsReadOnly="True" Background="#222"/></Border>
-                                <Border Grid.Column="3"><TextBox Text="{Binding FieldsMap[Дата.6].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0"><TextBox AutomationProperties.Name="Должн.6" Text="{Binding FieldsMap[Должн.6].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1"><TextBox AutomationProperties.Name="Фам.6" Text="{Binding FieldsMap[Фам.6].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2"><TextBox IsReadOnly="True" Background="{DynamicResource InputBackground}"/></Border>
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3"><TextBox AutomationProperties.Name="Дата.6" Text="{Binding FieldsMap[Дата.6].Value, UpdateSourceTrigger=PropertyChanged}"/></Border>
                             </Grid>
                         </Grid>
 
@@ -357,7 +324,7 @@
                             </Grid.RowDefinitions>
 
                             <!-- Обозначение -->
-                            <Border Grid.Row="0">
+                            <Border Style="{StaticResource StampCellBorder}" Grid.Row="0">
                                 <Grid>
                                     <TextBlock Text="Обозначение документа"/>
                                     <Grid>
@@ -371,7 +338,7 @@
                             </Border>
 
                             <!-- Проект -->
-                            <Border Grid.Row="1">
+                            <Border Style="{StaticResource StampCellBorder}" Grid.Row="1">
                                 <Grid>
                                     <TextBlock Text="Наименование проекта"/>
                                     <Grid>
@@ -392,7 +359,7 @@
                                     <ColumnDefinition Width="57*"/>
                                     <ColumnDefinition Width="76*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0">
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0">
                                     <Grid>
                                         <TextBlock Text="Наименование здания"/>
                                         <Grid>
@@ -404,22 +371,22 @@
                                         </Grid>
                                     </Grid>
                                 </Border>
-                                <Border Grid.Column="1">
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1">
                                     <Grid>
                                         <TextBlock Text="Стадия" HorizontalAlignment="Center"/>
-                                        <TextBox Margin="0,12,0,0" HorizontalContentAlignment="Center" Text="{Binding FieldsMap[Стадия].Value, UpdateSourceTrigger=PropertyChanged}"/>
+                                        <TextBox AutomationProperties.Name="Стадия" Margin="0,12,0,0" HorizontalContentAlignment="Center" Text="{Binding FieldsMap[Стадия].Value, UpdateSourceTrigger=PropertyChanged}"/>
                                     </Grid>
                                 </Border>
-                                <Border Grid.Column="2">
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="2">
                                     <Grid>
                                         <TextBlock Text="Лист" HorizontalAlignment="Center"/>
-                                        <TextBox IsReadOnly="True" Text="auto" Margin="0,12,0,0" HorizontalContentAlignment="Center" Background="#222"/>
+                                        <TextBox IsReadOnly="True" Text="auto" Margin="0,12,0,0" HorizontalContentAlignment="Center" Background="{DynamicResource InputBackground}"/>
                                     </Grid>
                                 </Border>
-                                <Border Grid.Column="3">
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="3">
                                     <Grid>
                                         <TextBlock Text="Листов" HorizontalAlignment="Center"/>
-                                        <TextBox Margin="0,12,0,0" HorizontalContentAlignment="Center" Text="{Binding FieldsMap[Листов].Value, UpdateSourceTrigger=PropertyChanged}"/>
+                                        <TextBox AutomationProperties.Name="Листов" Margin="0,12,0,0" HorizontalContentAlignment="Center" Text="{Binding FieldsMap[Листов].Value, UpdateSourceTrigger=PropertyChanged}"/>
                                     </Grid>
                                 </Border>
                             </Grid>
@@ -430,16 +397,16 @@
                                     <ColumnDefinition Width="266*"/>
                                     <ColumnDefinition Width="190*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0">
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="0">
                                     <Grid>
                                         <TextBlock Text="Наименование" VerticalAlignment="Top"/>
-                                        <TextBox IsReadOnly="True" Background="#222"/>
+                                        <TextBox IsReadOnly="True" Background="{DynamicResource InputBackground}"/>
                                     </Grid>
                                 </Border>
-                                <Border Grid.Column="1">
+                                <Border Style="{StaticResource StampCellBorder}" Grid.Column="1">
                                     <Grid>
                                         <TextBlock Text="Компания"/>
-                                        <TextBox FontSize="18" FontWeight="Bold" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Text="{Binding FieldsMap[Компания].Value, UpdateSourceTrigger=PropertyChanged}"/>
+                                        <TextBox AutomationProperties.Name="Компания" FontSize="18" FontWeight="Bold" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Text="{Binding FieldsMap[Компания].Value, UpdateSourceTrigger=PropertyChanged}"/>
                                     </Grid>
                                 </Border>
                             </Grid>
@@ -451,7 +418,7 @@
 
         <!-- КНОПКИ -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,5,0,0">
-            <Button Content="Обновить из чертежа" Command="{Binding RefreshCommand}" Style="{StaticResource StampButton}" Margin="0,0,10,0"/>
+            <Button Content="Обновить из чертежа" Command="{Binding RefreshCommand}" Style="{StaticResource {x:Type Button}}" Margin="0,0,10,0"/>
             <Button Content="Применить" Command="{Binding UpdateCommand}" Style="{StaticResource PrimaryButton}"/>
         </StackPanel>
     </Grid>

@@ -13,6 +13,7 @@ namespace AutocadTools.Views
         public CleanDwgWindow()
         {
             InitializeComponent();
+            UiTheme.Apply(this);
         }
     }
 }

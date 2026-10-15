@@ -15,6 +15,7 @@ namespace AutocadTools.Views
         public SumLengthWindow()
         {
             InitializeComponent();
+            UiTheme.Apply(this);
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)

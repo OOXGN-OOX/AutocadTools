@@ -19,6 +19,7 @@ namespace AutocadTools.Views
         public AboutWindow()
         {
             InitializeComponent();
+            UiTheme.Apply(this);
             LoadVersion();
             AutoUpdateCheck.IsChecked = Services.SettingsService.Settings.AutoCheckUpdates;
             AutoInstallUpdateCheck.IsChecked = Services.SettingsService.Settings.AutoInstallUpdates;
@@ -40,7 +41,7 @@ namespace AutocadTools.Views
         private void LoadVersion()
         {
             var version = Assembly.GetExecutingAssembly().GetName().Version;
-            VersionText.Text = $"Autocad Tools v{version?.Major}.{version?.Minor}.{version?.Build}";
+            VersionText.Text = $"Версия {version?.Major}.{version?.Minor}.{version?.Build}";
         }
 
         private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
