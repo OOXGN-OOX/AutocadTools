@@ -238,7 +238,7 @@ namespace UiChecks
                     dialog.UpdateLayout();
                     var grid = Descendants(dialog).OfType<DataGrid>().Single();
                     if (grid.Columns[0].ActualWidth < 230) throw new Exception("Tool names column collapsed.");
-                    if (grid.Items.Count != 18 || grid.Columns.Count != 4) throw new Exception("Incomplete bilingual command catalog.");
+                    if (grid.Items.Count != AutocadTools.Services.CommandCatalog.All.Count || grid.Columns.Count != 4) throw new Exception("Incomplete bilingual command catalog.");
                     var search = Descendants(dialog).OfType<TextBox>().First(t => (string)t.ToolTip == "Поиск по названию или команде");
                     search.Text = "штамп"; dialog.UpdateLayout();
                     if (grid.Items.Count != 1) throw new Exception("Russian command search failed.");
@@ -264,7 +264,71 @@ namespace UiChecks
                     using (var file = File.Create(Path.Combine(output, $"CommandAliases-{scale * 100:0}" + (compact ? "-compact" : "") + ".png"))) encoder.Save(file);
                     dialog.Close(); count++;
                 }
-                Console.WriteLine($"PASS: {count} WPF renders, 100% / 150%, default / minimum dimensions; signature ink/cropping, combo boxes, command label fit; 18 vector icons.");
+                foreach (var kind in Enum.GetValues<AutocadTools.Models.DrawingSymbolKind>())
+                foreach (double scale in new[] { 1.0, 1.5 })
+                foreach (bool compact in new[] { false, true })
+                {
+                    var defaults = AutocadTools.Models.DrawingSymbolCatalog.Get(kind).Defaults();
+                    var dialog = new DrawingSymbolWindow(defaults)
+                    { Left = -32000, Top = -32000, WindowStartupLocation = WindowStartupLocation.Manual, ShowActivated = false };
+                    dialog.Show();
+                    if (compact) { dialog.Width = dialog.MinWidth; dialog.Height = dialog.MinHeight; }
+                    dialog.UpdateLayout();
+                    var inputs = Descendants(dialog).OfType<TextBox>().ToArray();
+                    var markInput = inputs.Single(t => new[] { "Обозначение", "Текст", "Отметка, м", "Уклон" }
+                        .Contains(System.Windows.Automation.AutomationProperties.GetName(t)));
+                    var action = Descendants(dialog).OfType<Button>().Single(b => b.Content as string == "Указать точки");
+                    markInput.Text = " ";
+                    if (action.IsEnabled) throw new Exception("Empty symbol designation accepted.");
+                    markInput.Text = defaults.Mark;
+                    var scaleInput = inputs.Single(t => System.Windows.Automation.AutomationProperties.GetName(t) == "Масштаб 1 :");
+                    scaleInput.Text = "NaN";
+                    if (action.IsEnabled) throw new Exception("Non-finite symbol scale accepted.");
+                    scaleInput.Text = "50,5";
+                    if (!action.IsEnabled || Math.Abs(dialog.Options.Scale - 50.5) > 1e-6)
+                        throw new Exception("Localized symbol scale rejected.");
+                    var surface = (FrameworkElement)VisualTreeHelper.GetChild(dialog, 0);
+                    foreach (var button in Descendants(dialog).OfType<Button>().Where(b => b.IsVisible && b.Content is string))
+                    {
+                        var bounds = button.TransformToAncestor(surface).TransformBounds(new Rect(button.RenderSize));
+                        if (bounds.Bottom > surface.ActualHeight + 1 || bounds.Right > surface.ActualWidth + 1)
+                            throw new Exception("Symbol action outside window: " + button.Content);
+                    }
+                    var render = new RenderTargetBitmap((int)Math.Ceiling(surface.ActualWidth * scale), (int)Math.Ceiling(surface.ActualHeight * scale), 96 * scale, 96 * scale, PixelFormats.Pbgra32);
+                    render.Render(surface);
+                    var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(render));
+                    using (var file = File.Create(Path.Combine(output, $"Symbol-{kind}-{scale * 100:0}" + (compact ? "-compact" : "") + ".png"))) encoder.Save(file);
+                    dialog.Close(); count++;
+                }
+                foreach (double scale in new[] { 1.0, 1.5 })
+                foreach (bool compact in new[] { false, true })
+                {
+                    var dialog = new DrawingSymbolCatalogWindow { Left = -32000, Top = -32000,
+                        WindowStartupLocation = WindowStartupLocation.Manual, ShowActivated = false };
+                    dialog.Show();
+                    if (compact) { dialog.Width = dialog.MinWidth; dialog.Height = dialog.MinHeight; }
+                    dialog.UpdateLayout();
+                    var list = Descendants(dialog).OfType<ListBox>().Single();
+                    if (list.Items.Count != AutocadTools.Models.DrawingSymbolCatalog.All.Count) throw new Exception("Incomplete symbol catalog.");
+                    var search = Descendants(dialog).OfType<TextBox>().Single();
+                    search.Text = "уклон:";
+                    if (list.Items.Count != 2) throw new Exception("Symbol search by title failed.");
+                    search.Text = "выноски";
+                    if (list.Items.Count != 5) throw new Exception("Symbol search by group failed.");
+                    search.Text = "нет такого знака";
+                    if (Descendants(dialog).OfType<Button>().Single(b => b.Content as string == "Настроить и вставить").IsEnabled)
+                        throw new Exception("Empty catalog search enabled insertion.");
+                    search.Text = "";
+                    list.SelectedItem = AutocadTools.Models.DrawingSymbolCatalog.Get(AutocadTools.Models.DrawingSymbolKind.Elevation);
+                    dialog.UpdateLayout();
+                    var surface = (FrameworkElement)VisualTreeHelper.GetChild(dialog, 0);
+                    var render = new RenderTargetBitmap((int)Math.Ceiling(surface.ActualWidth * scale), (int)Math.Ceiling(surface.ActualHeight * scale), 96 * scale, 96 * scale, PixelFormats.Pbgra32);
+                    render.Render(surface);
+                    var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(render));
+                    using (var file = File.Create(Path.Combine(output, $"SymbolCatalog-{scale * 100:0}" + (compact ? "-compact" : "") + ".png"))) encoder.Save(file);
+                    dialog.Close(); count++;
+                }
+                Console.WriteLine($"PASS: {count} WPF renders, 100% / 150%, default / minimum dimensions; signature ink/cropping, combo boxes, command label fit, symbol settings validation and catalog search; {ToolIcons.Commands.Count()} vector icons.");
                 app.Shutdown();
                 return 0;
             }
