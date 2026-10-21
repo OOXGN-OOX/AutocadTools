@@ -12,6 +12,10 @@
     <Compile Include="..\..\Views\ToolIcons.cs" Link="ToolIcons.cs"/>
     <Compile Include="..\..\Views\SignatureWindow.cs" Link="SignatureWindow.cs"/>
     <Compile Include="..\..\Views\CommandAliasesWindow.cs" Link="CommandAliasesWindow.cs"/>
+    <Compile Include="..\..\Views\DrawingSymbolWindow.cs" Link="DrawingSymbolWindow.cs"/>
+    <Compile Include="..\..\Models\DrawingSymbolOptions.cs" Link="DrawingSymbolOptions.cs"/>
+    <Compile Include="..\..\Models\DrawingSymbolCatalog.cs" Link="DrawingSymbolCatalog.cs"/>
+    <Compile Include="..\..\Views\DrawingSymbolCatalogWindow.cs" Link="DrawingSymbolCatalogWindow.cs"/>
     <Compile Include="..\..\Services\CommandAliases.cs" Link="CommandAliases.cs"/>
     <Compile Include="..\..\Services\CommandCatalog.cs" Link="CommandCatalog.cs"/>
     <Compile Include="..\..\Models\StampSignature.cs" Link="StampSignature.cs"/>

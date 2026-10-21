@@ -165,6 +165,12 @@ namespace AutocadTools
             AddButton(toolsPanelSource, "Подготовка\nпланов", "ATPLAN");
             AddButton(toolsPanelSource, "Таблица\nExcel", "ATEXCEL");
 
+            var symbolsPanelSource = new RibbonPanelSource { Title = "Оформление" };
+            tab.Panels.Add(new RibbonPanel { Source = symbolsPanelSource });
+            AddButton(symbolsPanelSource, "Условные\nобозначения", "ATSYMBOL");
+            AddButton(symbolsPanelSource, "Разрез", "ATSECTION");
+            AddButton(symbolsPanelSource, "Обрыв /\nразрыв", "ATBREAK");
+
 
             // =========================
             // ПАНЕЛЬ: ОЧИСТКА И СБРОС

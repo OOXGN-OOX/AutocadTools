@@ -1,6 +1,6 @@
 ﻿param(
     [ValidateSet('Check','Test','Build','Preview')][string]$Mode = 'Check',
-    [ValidateSet('All','MultiCopy','Stamp','Updates','Pdf','UI','Commands')][string]$Suite = 'All',
+    [ValidateSet('All','MultiCopy','Stamp','Updates','Pdf','UI','Commands','Symbols')][string]$Suite = 'All',
     [ValidateSet('2025','2026','2027')][string]$AutoCADVersion = '2026',
     [switch]$AutoCAD,
     [string]$DotnetPath
@@ -68,5 +68,9 @@ if ($AutoCAD) {
     if ($AutoCADVersion -eq '2025') { throw 'Core Console checks currently support 2026 and 2027.' }
     if ($Suite -in @('All','MultiCopy')) { & (Join-Path $taskRoot 'tests\MultiCopyChecks\Run.ps1') -AutoCADVersion $AutoCADVersion -DotnetPath $DotnetPath | Out-Host }
     if ($Suite -in @('All','Stamp')) { & (Join-Path $taskRoot 'tests\StampChecks\Run.ps1') -AutoCADVersion $AutoCADVersion -DotnetPath $DotnetPath | Out-Host }
+    if ($Suite -in @('All','Symbols')) { & (Join-Path $taskRoot 'tests\DrawingSymbolChecks\Run.ps1') -AutoCADVersion $AutoCADVersion -DotnetPath $DotnetPath | Out-Host }
     if ($Suite -eq 'All') { & (Join-Path $taskRoot 'tests\AlignSkewChecks\Run.ps1') -AutoCADVersion $AutoCADVersion -DotnetPath $DotnetPath | Out-Host }
+}
+elseif ($Suite -eq 'Symbols') {
+    throw 'Symbol database checks require -AutoCAD and an installed AutoCAD 2026 or 2027 Core Console.'
 }

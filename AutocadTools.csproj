@@ -7,7 +7,7 @@
     <AssemblyName Condition="'$(PreviewAssemblyName)' != ''">$(PreviewAssemblyName)</AssemblyName>
     <RootNamespace>AutocadTools</RootNamespace>
     <DefineConstants Condition="'$(PreviewAssemblyName)' != ''">$(DefineConstants);LIVE_PREVIEW</DefineConstants>
-    <Version>0.1.1</Version>
+    <Version>0.1.2</Version>
     <Product>Autocad Tools</Product>
     <Title>Autocad Tools</Title>
     <Copyright>Copyright (c) 2026 OOXGN (GitHub: OOXGN-OOX). All rights reserved.</Copyright>
