@@ -162,6 +162,7 @@ namespace AutocadTools
             AddButton(toolsPanelSource, "Выбор по\nобразцу", "ATSIMILAR");
             AddButton(toolsPanelSource, "Сумма\nдлин", "ATSUM");
             AddButton(toolsPanelSource, "Мульти\nкопирование", "ATMCOPY");
+            AddButton(toolsPanelSource, "Копирование\nс нумерацией", "ATNCOPY");
             AddButton(toolsPanelSource, "Подготовка\nпланов", "ATPLAN");
             AddButton(toolsPanelSource, "Таблица\nExcel", "ATEXCEL");
 

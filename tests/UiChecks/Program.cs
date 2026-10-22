@@ -328,7 +328,64 @@ namespace UiChecks
                     using (var file = File.Create(Path.Combine(output, $"SymbolCatalog-{scale * 100:0}" + (compact ? "-compact" : "") + ".png"))) encoder.Save(file);
                     dialog.Close(); count++;
                 }
-                Console.WriteLine($"PASS: {count} WPF renders, 100% / 150%, default / minimum dimensions; signature ink/cropping, combo boxes, command label fit, symbol settings validation and catalog search; {ToolIcons.Commands.Count()} vector icons.");
+                foreach (bool curve in new[] { false, true })
+                foreach (double scale in new[] { 1.0, 1.5 })
+                foreach (bool compact in new[] { false, true })
+                {
+                    var sources = new[] { new AutocadTools.Models.NumberedCopySource("MARK: П1-007 DN50", "П1-007 DN50", false),
+                        new AutocadTools.Models.NumberedCopySource("NOTE: без номера", "без номера", false) };
+                    var options = new AutocadTools.Models.NumberedCopyOptions { Mode = curve ? AutocadTools.Models.NumberedCopyMode.Curve : AutocadTools.Models.NumberedCopyMode.Points };
+                    var dialog = new NumberedCopyWindow(sources, options) { Left = -32000, Top = -32000,
+                        WindowStartupLocation = WindowStartupLocation.Manual, ShowActivated = false };
+                    if (compact) { dialog.Width = dialog.MinWidth; dialog.Height = dialog.MinHeight; }
+                    dialog.Show(); dialog.UpdateLayout();
+                    T Input<T>(string name) where T : DependencyObject => Descendants(dialog).OfType<T>()
+                        .Single(t => System.Windows.Automation.AutomationProperties.GetName(t) == name);
+                    var action = Descendants(dialog).OfType<Button>().Single(b => b.Content as string == "Разместить копии");
+                    Input<ComboBox>("Изменяемое число").SelectedIndex = 1;
+                    if (dialog.Options.Start != 7 || dialog.Options.Digits != 3) throw new Exception("Number selection does not infer value and leading zeros.");
+                    var step = Input<TextBox>("Приращение номера"); step.Text = "-0,5";
+                    var preview = Input<TextBlock>("Предпросмотр нумерации");
+                    if (!action.IsEnabled || dialog.Options.Step != -0.5m || !preview.Text.Contains(curve ? "П1-007,0 DN50" : "П1-006,5 DN50"))
+                        throw new Exception("Live decimal numbering preview failed.");
+                    step.Text = "NaN"; if (action.IsEnabled) throw new Exception("Invalid decimal increment accepted.");
+                    step.Text = "1";
+                    var source = Input<ComboBox>("Текст / атрибут"); source.SelectedIndex = 1;
+                    if (action.IsEnabled) throw new Exception("Text without numeric fragments accepted.");
+                    source.SelectedIndex = 0; Input<ComboBox>("Изменяемое число").SelectedIndex = 1;
+                    var keep = Input<CheckBox>("Сохранить текст до и после числа"); keep.IsChecked = false;
+                    var prefix = Input<TextBox>("Префикс");
+                    if (!prefix.IsEnabled) throw new Exception("Prefix remains disabled after switching surrounding text off.");
+                    prefix.Text = "В-"; keep.IsChecked = true;
+                    if (curve)
+                    {
+                        var distance = Input<TextBox>("Шаг вдоль кривой, ед. чертежа"); distance.Text = "NaN";
+                        if (action.IsEnabled) throw new Exception("Non-finite path step accepted.");
+                        Input<CheckBox>("В вершинах полилинии").IsChecked = true;
+                        if (!action.IsEnabled || distance.IsEnabled) throw new Exception("Unused path step blocks vertex mode.");
+                        Input<CheckBox>("В вершинах полилинии").IsChecked = false; distance.Text = "1000";
+                        Input<CheckBox>("Задать количество копий").IsChecked = true;
+                        Input<CheckBox>("Равномерно распределить по всей длине").IsChecked = true;
+                        if (distance.IsEnabled) throw new Exception("Step remains enabled for equal division.");
+                        var copies = Input<TextBox>("Количество копий"); copies.Text = "10001";
+                        if (action.IsEnabled) throw new Exception("More than 10000 copies accepted.");
+                        copies.Text = "5";
+                    }
+                    dialog.UpdateLayout();
+                    var surface = (FrameworkElement)VisualTreeHelper.GetChild(dialog, 0);
+                    foreach (var button in Descendants(dialog).OfType<Button>().Where(b => b.IsVisible && b.Content is string))
+                    {
+                        var bounds = button.TransformToAncestor(surface).TransformBounds(new Rect(button.RenderSize));
+                        if (bounds.Bottom > surface.ActualHeight + 1 || bounds.Right > surface.ActualWidth + 1)
+                            throw new Exception("Numbered copy action outside window.");
+                    }
+                    var render = new RenderTargetBitmap((int)Math.Ceiling(surface.ActualWidth * scale), (int)Math.Ceiling(surface.ActualHeight * scale), 96 * scale, 96 * scale, PixelFormats.Pbgra32);
+                    render.Render(surface);
+                    var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(render));
+                    using (var file = File.Create(Path.Combine(output, $"NumberedCopy-{(curve ? "curve" : "points")}-{scale * 100:0}" + (compact ? "-compact" : "") + ".png"))) encoder.Save(file);
+                    dialog.Close(); count++;
+                }
+                Console.WriteLine($"PASS: {count} WPF renders, 100% / 150%, default / minimum dimensions; signature ink/cropping, combo boxes, command label fit, symbol settings, catalog search and numbered-copy validation/preview; {ToolIcons.Commands.Count()} vector icons.");
                 app.Shutdown();
                 return 0;
             }

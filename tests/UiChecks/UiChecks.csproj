@@ -13,6 +13,9 @@
     <Compile Include="..\..\Views\SignatureWindow.cs" Link="SignatureWindow.cs"/>
     <Compile Include="..\..\Views\CommandAliasesWindow.cs" Link="CommandAliasesWindow.cs"/>
     <Compile Include="..\..\Views\DrawingSymbolWindow.cs" Link="DrawingSymbolWindow.cs"/>
+    <Compile Include="..\..\Views\NumberedCopyWindow.cs" Link="NumberedCopyWindow.cs"/>
+    <Compile Include="..\..\Models\NumberedCopyOptions.cs" Link="NumberedCopyOptions.cs"/>
+    <Compile Include="..\..\Services\NumberedCopyText.cs" Link="NumberedCopyText.cs"/>
     <Compile Include="..\..\Models\DrawingSymbolOptions.cs" Link="DrawingSymbolOptions.cs"/>
     <Compile Include="..\..\Models\DrawingSymbolCatalog.cs" Link="DrawingSymbolCatalog.cs"/>
     <Compile Include="..\..\Views\DrawingSymbolCatalogWindow.cs" Link="DrawingSymbolCatalogWindow.cs"/>
