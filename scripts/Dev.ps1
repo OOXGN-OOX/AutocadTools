@@ -1,6 +1,6 @@
 ﻿param(
     [ValidateSet('Check','Test','Build','Preview')][string]$Mode = 'Check',
-    [ValidateSet('All','MultiCopy','Stamp','Updates','Pdf','UI','Commands','Symbols')][string]$Suite = 'All',
+    [ValidateSet('All','MultiCopy','Stamp','Updates','Pdf','UI','Commands','Symbols','NumberedCopy')][string]$Suite = 'All',
     [ValidateSet('2025','2026','2027')][string]$AutoCADVersion = '2026',
     [switch]$AutoCAD,
     [string]$DotnetPath
@@ -36,6 +36,9 @@ if ($Suite -in @('All','Commands')) {
 if ($Suite -in @('All','MultiCopy')) {
     Invoke-TaskDotnet @('run', '--project', (Join-Path $taskRoot 'tests\MultiCopyLayoutChecks\MultiCopyLayoutChecks.csproj'), '-c', 'Debug')
 }
+if ($Suite -in @('All','NumberedCopy')) {
+    Invoke-TaskDotnet @('run', '--project', (Join-Path $taskRoot 'tests\NumberedCopyTextChecks\NumberedCopyTextChecks.csproj'), '-c', 'Debug')
+}
 if ($Suite -in @('All','Pdf')) {
     Invoke-TaskDotnet @('run', '--project', (Join-Path $taskRoot 'tests\PdfChecks\PdfChecks.csproj'), '-c', 'Debug')
 }
@@ -67,6 +70,7 @@ if ($Suite -in @('All','Updates')) {
 if ($AutoCAD) {
     if ($AutoCADVersion -eq '2025') { throw 'Core Console checks currently support 2026 and 2027.' }
     if ($Suite -in @('All','MultiCopy')) { & (Join-Path $taskRoot 'tests\MultiCopyChecks\Run.ps1') -AutoCADVersion $AutoCADVersion -DotnetPath $DotnetPath | Out-Host }
+    if ($Suite -in @('All','NumberedCopy')) { & (Join-Path $taskRoot 'tests\NumberedCopyChecks\Run.ps1') -AutoCADVersion $AutoCADVersion -DotnetPath $DotnetPath | Out-Host }
     if ($Suite -in @('All','Stamp')) { & (Join-Path $taskRoot 'tests\StampChecks\Run.ps1') -AutoCADVersion $AutoCADVersion -DotnetPath $DotnetPath | Out-Host }
     if ($Suite -in @('All','Symbols')) { & (Join-Path $taskRoot 'tests\DrawingSymbolChecks\Run.ps1') -AutoCADVersion $AutoCADVersion -DotnetPath $DotnetPath | Out-Host }
     if ($Suite -eq 'All') { & (Join-Path $taskRoot 'tests\AlignSkewChecks\Run.ps1') -AutoCADVersion $AutoCADVersion -DotnetPath $DotnetPath | Out-Host }

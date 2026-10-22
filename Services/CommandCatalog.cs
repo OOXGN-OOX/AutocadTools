@@ -26,6 +26,7 @@ namespace AutocadTools.Services
             new CommandDefinition("ATSIMILAR", "АТПОДОБНЫЕ", "Выбор по образцу", ""),
             new CommandDefinition("ATSUM", "АТСУММА", "Сумма длин и площадей", ""),
             new CommandDefinition("ATMCOPY", "АТМКОП", "Мультикопирование", "МК"),
+            new CommandDefinition("ATNCOPY", "АТНКОП", "Копирование с нумерацией"),
             new CommandDefinition("ATSECTION", "АТРАЗРЕЗ", "Обозначение разреза"),
             new CommandDefinition("ATSYMBOL", "АТУСЛОВНЫЕ", "Условные обозначения: оформление чертежей"),
             new CommandDefinition("ATBREAK", "АТРАЗРЫВ", "Обозначение обрыва / разрыва"),
