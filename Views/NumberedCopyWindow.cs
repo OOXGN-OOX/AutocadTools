@@ -162,7 +162,8 @@ namespace AutocadTools.Views
                 value.Validate();
                 var source = _sources[value.SourceIndex];
                 int first = curve && value.OnCurve ? 0 : 1;
-                string[] previews = Enumerable.Range(first, 3).Select(i => Plain(NumberedCopyText.Format(source, value, i))).ToArray();
+                string[] previews = Enumerable.Range(first, 3).Select(i => NumberedCopyText.Format(source, value, i))
+                    .Select(text => source.Formatted ? Plain(text) : text).ToArray();
                 _preview.Text = "Первые копии: " + string.Join("  →  ", previews);
                 Options = value; _error.Text = ""; _accept.IsEnabled = true; return true;
             }

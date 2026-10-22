@@ -333,7 +333,8 @@ namespace UiChecks
                 foreach (bool compact in new[] { false, true })
                 {
                     var sources = new[] { new AutocadTools.Models.NumberedCopySource("MARK: П1-007 DN50", "П1-007 DN50", false),
-                        new AutocadTools.Models.NumberedCopySource("NOTE: без номера", "без номера", false) };
+                        new AutocadTools.Models.NumberedCopySource("NOTE: без номера", "без номера", false),
+                        new AutocadTools.Models.NumberedCopySource("NOTE: П-007 {DN50}", "П-007 {DN50}", false) };
                     var options = new AutocadTools.Models.NumberedCopyOptions { Mode = curve ? AutocadTools.Models.NumberedCopyMode.Curve : AutocadTools.Models.NumberedCopyMode.Points };
                     var dialog = new NumberedCopyWindow(sources, options) { Left = -32000, Top = -32000,
                         WindowStartupLocation = WindowStartupLocation.Manual, ShowActivated = false };
@@ -352,6 +353,9 @@ namespace UiChecks
                     step.Text = "1";
                     var source = Input<ComboBox>("Текст / атрибут"); source.SelectedIndex = 1;
                     if (action.IsEnabled) throw new Exception("Text without numeric fragments accepted.");
+                    source.SelectedIndex = 0; Input<ComboBox>("Изменяемое число").SelectedIndex = 1;
+                    source.SelectedIndex = 2;
+                    if (!preview.Text.Contains("{DN50}")) throw new Exception("Plain-text preview strips literal braces.");
                     source.SelectedIndex = 0; Input<ComboBox>("Изменяемое число").SelectedIndex = 1;
                     var keep = Input<CheckBox>("Сохранить текст до и после числа"); keep.IsChecked = false;
                     var prefix = Input<TextBox>("Префикс");
