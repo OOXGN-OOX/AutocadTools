@@ -176,6 +176,13 @@ namespace UiChecks
                             throw new Exception("An unbroken project name does not wrap inside the editor.");
                     }
                     var surface = (FrameworkElement)VisualTreeHelper.GetChild(window, 0);
+                    if (Path.GetFileName(path) == "StampPropsControl.xaml")
+                        foreach (var button in Descendants(content).OfType<Button>().Where(button => button.IsVisible && button.Content is string))
+                        {
+                            var bounds = button.TransformToAncestor(surface).TransformBounds(new Rect(button.RenderSize));
+                            if (bounds.Bottom > surface.ActualHeight + 1 || bounds.Right > surface.ActualWidth + 1 || bounds.Left < -1)
+                                throw new Exception("Stamp action outside the visible window: " + button.Content);
+                        }
                     double width = surface.ActualWidth, height = surface.ActualHeight;
                     // Localized command labels must remain fully inside their hit targets.
                     foreach (var button in Descendants(content).OfType<Button>().Where(b => b.IsVisible && b.Content is string))

@@ -1,12 +1,7 @@
-// SPDX-License-Identifier: LicenseRef-AutocadTools-Proprietary-NC-Attribution
-// See LICENSE in the repository root.
-// ============================================================================
+// SPDX-License-Identifier: AGPL-3.0-only
 // OOXGN - Copyright (c) 2026. All rights reserved.
-// Author: OOXGN | Project: AutocadTools
-// ============================================================================
-
-// File: Services/PdfPostProcessingService.cs
-
+// Author: OOXGN | Project: BotPlusAutocadTool
+// Derived from Davud77/BotPlusAutocadTool (51e3e82). See THIRD-PARTY-NOTICES.md.
 using Autodesk.AutoCAD.EditorInput;
 using System;
 using System.Collections.Generic;
@@ -28,33 +23,31 @@ namespace AutocadTools.Services
 {
     /// <summary>
     /// Постобработка многостраничного PDF (iText7):
-    /// - Обрезка (CropBox) каждой страницы по размерам из FormatDefinition, от нижнего левого угла.
+    /// - Размер видимой и физической страницы по окну рамки, от начала печати (0,0).
     /// - Добавление гиперссылки на весь лист.
     /// </summary>
     public static class PdfPostProcessingService
     {
+
         /// <summary>
         /// Важно: itemsInDsdOrder должен быть в том же порядке, что и страницы в итоговом PDF.
         /// </summary>
         public static bool ProcessPdf(
             string pdfPath,
             IReadOnlyList<BatchPlotItem> itemsInDsdOrder,
-            Editor ed,
-            string baseWebUrl = null)
+            Editor ed, string baseWebUrl = null)
         {
             if (string.IsNullOrWhiteSpace(pdfPath) || !File.Exists(pdfPath))
             {
-                ed?.WriteMessage($"\n[Autocad Tools Error] PDF файл не найден: {pdfPath}\n");
+                ed?.WriteMessage($"\n[Autocad Tools] PDF файл не найден: {pdfPath}\n");
                 return false;
             }
 
             if (itemsInDsdOrder == null || itemsInDsdOrder.Count == 0)
             {
-                ed?.WriteMessage("\n[Autocad Tools Warning] Нет листов для постобработки.\n");
+                ed?.WriteMessage("\n[Autocad Tools] Нет листов для постобработки.\n");
                 return false;
             }
-
-            string webUrl = baseWebUrl;
             string tempPdfPath = pdfPath + ".tmp";
 
             try
@@ -73,18 +66,14 @@ namespace AutocadTools.Services
                         BatchPlotItem item = itemsInDsdOrder[pageIdx - 1];
                         ITextPdfPage page = pdfDoc.GetPage(pageIdx);
 
-                        // 1) Crop (обрезка) по размерам из таблицы
-                        if (item != null && item.FormatDefinition != null)
+                        if (item != null && (item.PlotWidthMm > 0 || item.FormatDefinition != null))
                         {
                             TryCropPageToFormat(page, item);
                         }
 
                         // 2) Гиперссылка на весь лист
-                        string linkUrl = BuildLinkUrl(webUrl, item);
-                        if (!string.IsNullOrWhiteSpace(linkUrl))
-                        {
-                            AddFullPageLink(page, linkUrl);
-                        }
+                        string linkUrl = BuildLinkUrl(baseWebUrl, item);
+                        if (!string.IsNullOrWhiteSpace(linkUrl)) AddFullPageLink(page, linkUrl);
                     }
                 }
 
@@ -96,7 +85,7 @@ namespace AutocadTools.Services
             }
             catch (System.Exception ex)
             {
-                ed?.WriteMessage($"\n[Autocad Tools Error] Ошибка постобработки PDF: {ex.Message}\n");
+                ed?.WriteMessage($"\n[Autocad Tools] Ошибка постобработки PDF: {ex.Message}\n");
                 try { if (File.Exists(tempPdfPath)) File.Delete(tempPdfPath); } catch { }
                 return false;
             }
@@ -108,9 +97,10 @@ namespace AutocadTools.Services
         private static void TryCropPageToFormat(ITextPdfPage page, BatchPlotItem item)
         {
             // мм -> pt (1 mm = 2.834645669 pt)
-            double widthPt = item.FormatDefinition.Width * 2.834645669;
-            double heightPt = item.FormatDefinition.Height * 2.834645669;
-            if (item.Format?.EndsWith(" v", StringComparison.OrdinalIgnoreCase) == true)
+            bool hasFrameSize = item.PlotWidthMm > 0 && item.PlotHeightMm > 0;
+            double widthPt = (hasFrameSize ? item.PlotWidthMm : item.FormatDefinition.Width) * 72.0 / 25.4;
+            double heightPt = (hasFrameSize ? item.PlotHeightMm : item.FormatDefinition.Height) * 72.0 / 25.4;
+            if (!hasFrameSize && item.Format?.EndsWith(" v", StringComparison.OrdinalIgnoreCase) == true)
                 (widthPt, heightPt) = (heightPt, widthPt);
 
             ITextRect current = page.GetCropBox();
@@ -130,33 +120,21 @@ namespace AutocadTools.Services
             if (urx <= llx || ury <= lly)
                 return;
 
-            page.SetCropBox(new ITextRect(llx, lly, urx - llx, ury - lly));
+            if (hasFrameSize && (urx - llx < widthPt - 1 || ury - lly < heightPt - 1))
+                throw new InvalidDataException($"Страница PDF меньше рамки листа {item.SheetNumber}.");
+            // Native PDFs round paper bounds to points. Keep the exact frame size
+            // when the discrepancy is only that rounding, rather than shortening it.
+            var bounds = new ITextRect(llx, lly, hasFrameSize ? (float)widthPt : urx - llx,
+                hasFrameSize ? (float)heightPt : ury - lly);
+            page.SetMediaBox(bounds);
+            page.SetCropBox(bounds);
+            page.SetTrimBox(bounds);
+            page.SetBleedBox(bounds);
+            page.SetArtBox(bounds);
         }
 
         /// <summary>
         /// Добавляет гиперссылку на всю видимую область (CropBox/MediaBox).
-        /// </summary>
-        private static void AddFullPageLink(ITextPdfPage page, string linkUrl)
-        {
-            ITextRect box = page.GetCropBox();
-            if (box == null || box.GetWidth() <= 0 || box.GetHeight() <= 0)
-                box = page.GetMediaBox();
-
-            var linkAnnot = new ITextPdfLinkAnnotation(
-                new ITextRect(box.GetLeft(), box.GetBottom(), box.GetWidth(), box.GetHeight())
-            );
-
-            linkAnnot.SetAction(ITextPdfAction.CreateURI(linkUrl));
-
-            // скрыть рамку
-            linkAnnot.SetBorder(new ITextPdfArray(new int[] { 0, 0, 0 }));
-
-            page.AddAnnotation(linkAnnot);
-        }
-
-        /// <summary>
-        /// Строит URL вида: baseWebUrl?sheet=...&format=...&id=...
-        /// Не предполагает тип SheetNumber (строка/число) — безопасно приводит к string.
         /// </summary>
         private static string BuildLinkUrl(string baseWebUrl, BatchPlotItem item)
         {
@@ -193,36 +171,72 @@ namespace AutocadTools.Services
             return $"{baseWebUrl}?sheet={sheetParam}&format={formatParam}&id={idParam}";
         }
 
-        public static void DeliverPdf(string sourcePath, string outputPath,
-            IReadOnlyList<BatchPlotItem> items, bool separateSheets)
+
+        private static void AddFullPageLink(ITextPdfPage page, string linkUrl)
+        {
+            ITextRect box = page.GetCropBox();
+            if (box == null || box.GetWidth() <= 0 || box.GetHeight() <= 0)
+                box = page.GetMediaBox();
+
+            var linkAnnot = new ITextPdfLinkAnnotation(
+                new ITextRect(box.GetLeft(), box.GetBottom(), box.GetWidth(), box.GetHeight())
+            );
+
+            linkAnnot.SetAction(ITextPdfAction.CreateURI(linkUrl));
+
+            // скрыть рамку
+            linkAnnot.SetBorder(new ITextPdfArray(new int[] { 0, 0, 0 }));
+
+            page.AddAnnotation(linkAnnot);
+        }
+
+        public static void CombinePages(IReadOnlyList<string> sourcePaths, string destination)
+        {
+            string temporary = destination + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            try
+            {
+                using (var target = new ITextPdfDocument(new ITextPdfWriter(temporary)))
+                    foreach (var path in sourcePaths)
+                    {
+                        using var source = new ITextPdfDocument(new ITextPdfReader(path));
+                        if (source.GetNumberOfPages() != 1) throw new InvalidDataException("Ожидался один лист в промежуточном PDF: " + path);
+                        source.CopyPagesTo(1, 1, target);
+                    }
+                File.Move(temporary, destination, overwrite: true);
+            }
+            finally { if (File.Exists(temporary)) File.Delete(temporary); }
+        }
+
+        public static string[] DeliverPdf(string sourcePath, string outputPath,
+            IReadOnlyList<BatchPlotItem> items, bool separateSheets, bool keepExisting = false)
         {
             if (!separateSheets)
             {
+                outputPath = Path.GetFullPath(outputPath);
                 Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
                 var temporary = outputPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
-                try { File.Copy(sourcePath, temporary); File.Move(temporary, outputPath, overwrite: true); }
+                try { File.Copy(sourcePath, temporary); return new[] { PdfOutputPaths.CompleteDelivery(temporary, outputPath, keepExisting) }; }
                 finally { if (File.Exists(temporary)) File.Delete(temporary); }
-                return;
             }
             Directory.CreateDirectory(outputPath);
+            var delivered = new List<string>();
             using (var source = new ITextPdfDocument(new ITextPdfReader(sourcePath)))
             {
                 if (source.GetNumberOfPages() != items.Count) throw new InvalidDataException("Неверное количество листов PDF.");
                 for (int i = 0; i < items.Count; i++)
                 {
-                    string number = items[i].SheetNumber ?? (i + 1).ToString();
-                    foreach (var invalid in Path.GetInvalidFileNameChars()) number = number.Replace(invalid, '_');
-                    string destination = Path.Combine(outputPath, $"{i + 1:D3}_Лист_{number}.pdf");
+                    string destination = Path.Combine(outputPath, PdfOutputPaths.SheetFileName(i, items[i].SheetNumber));
                     string temporary = destination + "." + Guid.NewGuid().ToString("N") + ".tmp";
                     try
                     {
                         using (var target = new ITextPdfDocument(new ITextPdfWriter(temporary)))
                             source.CopyPagesTo(i + 1, i + 1, target);
-                        File.Move(temporary, destination, overwrite: true);
+                        delivered.Add(PdfOutputPaths.CompleteDelivery(temporary, destination, keepExisting));
                     }
                     finally { if (File.Exists(temporary)) File.Delete(temporary); }
                 }
             }
+            return delivered.ToArray();
         }
     }
 }

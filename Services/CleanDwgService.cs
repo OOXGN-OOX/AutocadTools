@@ -1,10 +1,7 @@
-// SPDX-License-Identifier: LicenseRef-AutocadTools-Proprietary-NC-Attribution
-// See LICENSE in the repository root.
-// ============================================================================
+// SPDX-License-Identifier: AGPL-3.0-only
 // OOXGN - Copyright (c) 2026. All rights reserved.
-// Author: OOXGN | Project: AutocadTools
-// ============================================================================
-
+// Author: OOXGN | Project: BotPlusAutocadTool
+// Derived from Davud77/BotPlusAutocadTool (51e3e82). See THIRD-PARTY-NOTICES.md.
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
@@ -31,6 +28,12 @@ namespace AutocadTools.Services
             _ed = doc.Editor;
         }
 
+        internal CleanDwgService(CleanDwgOptions options, Database database, Transaction transaction)
+        {
+            _options = options;
+            _db = database;
+            _tr = transaction;
+        }
         public void Process()
         {
             int count = 0;
@@ -103,7 +106,7 @@ namespace AutocadTools.Services
                     }
                 }
             }
-            if (deleted > 0) _ed.WriteMessage($"\nУдалено визуальных объектов: {deleted}");
+            if (deleted > 0) _ed?.WriteMessage($"\nУдалено визуальных объектов: {deleted}");
             return deleted;
         }
 
@@ -117,7 +120,7 @@ namespace AutocadTools.Services
                 grp.Erase();
                 deleted++;
             }
-            if (deleted > 0) _ed.WriteMessage($"\nУдалено групп: {deleted}");
+            if (deleted > 0) _ed?.WriteMessage($"\nУдалено групп: {deleted}");
             return deleted;
         }
 
@@ -150,7 +153,7 @@ namespace AutocadTools.Services
                     if (nod.Contains(name))
                     {
                         nod.Remove(name);
-                        _ed.WriteMessage($"\nУдален словарь фильтров: {name}");
+                        _ed?.WriteMessage($"\nУдален словарь фильтров: {name}");
                     }
                 }
             }
@@ -166,7 +169,7 @@ namespace AutocadTools.Services
                 ps.Erase();
                 deleted++;
             }
-            if (deleted > 0) _ed.WriteMessage($"\nУдалено настроек печати: {deleted}");
+            if (deleted > 0) _ed?.WriteMessage($"\nУдалено настроек печати: {deleted}");
         }
 
         private void CleanRegApps()
@@ -187,7 +190,7 @@ namespace AutocadTools.Services
                 }
                 catch { }
             }
-            if (deleted > 0) _ed.WriteMessage($"\nУдалено RegApps: {deleted}");
+            if (deleted > 0) _ed?.WriteMessage($"\nУдалено RegApps: {deleted}");
         }
 
         private void CleanScaleList()
@@ -196,7 +199,7 @@ namespace AutocadTools.Services
             if (nod.Contains("ACAD_SCALELIST"))
             {
                 nod.Remove("ACAD_SCALELIST");
-                _ed.WriteMessage("\nСброшен список масштабов (Annotation Scales).");
+                _ed?.WriteMessage("\nСброшен список масштабов (Annotation Scales).");
             }
         }
 
@@ -207,13 +210,13 @@ namespace AutocadTools.Services
             if (_options.VbaMacros && nod.Contains("ACAD_VBA"))
             {
                 nod.Remove("ACAD_VBA");
-                _ed.WriteMessage("\nУдалены VBA макросы.");
+                _ed?.WriteMessage("\nУдалены VBA макросы.");
             }
 
             if (_options.DgnLineStyles && nod.Contains("ACAD_DGNLINESTYLECOMP"))
             {
                 nod.Remove("ACAD_DGNLINESTYLECOMP");
-                _ed.WriteMessage("\nУдалены стили линий DGN.");
+                _ed?.WriteMessage("\nУдалены стили линий DGN.");
             }
 
             if (_options.Dictionaries)
@@ -226,7 +229,7 @@ namespace AutocadTools.Services
                     try
                     {
                         nod.Remove(entry.Key);
-                        _ed.WriteMessage($"\nУдален словарь: {entry.Key}");
+                        _ed?.WriteMessage($"\nУдален словарь: {entry.Key}");
                     }
                     catch { }
                 }
@@ -268,7 +271,7 @@ namespace AutocadTools.Services
                     }
                 }
             }
-            if (histDel > 0) _ed.WriteMessage($"\nОтключена история у {histDel} тел.");
+            if (histDel > 0) _ed?.WriteMessage($"\nОтключена история у {histDel} тел.");
         }
     }
 }

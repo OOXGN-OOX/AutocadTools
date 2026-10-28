@@ -9,8 +9,10 @@ using System.Windows.Interop;
 
 namespace AutocadTools.Views
 {
-    internal static class UiTheme
+    internal static partial class UiTheme
     {
+        static partial void AttachPreferences(Window window);
+
         [DllImport("dwmapi.dll")]
         private static extern int DwmSetWindowAttribute(IntPtr window, int attribute, ref int value, int size);
 
@@ -25,6 +27,7 @@ namespace AutocadTools.Views
 
         public static void Apply(Window window)
         {
+            AttachPreferences(window);
             var palette = new ResourceDictionary
             {
                 Source = new Uri("/" + typeof(UiTheme).Assembly.GetName().Name + ";component/Views/Styles.xaml", UriKind.Relative)

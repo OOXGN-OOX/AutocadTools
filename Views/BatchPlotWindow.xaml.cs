@@ -30,11 +30,16 @@ namespace AutocadTools.Views
             UiTheme.Apply(this);
 
             // DataContext задаём тут
-            var vm = new BatchPlotViewModel();
+            var vm = new BatchPlotViewModel(operation =>
+            {
+                var editor = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument?.Editor;
+                if (editor == null) return;
+                using (editor.StartUserInteraction(this)) operation();
+            });
             DataContext = vm;
 
             vm.RequestClose += OnRequestClose;
-            Closed += (_, _) => vm.RequestClose -= OnRequestClose;
+            Closed += (_, _) => { vm.RequestClose -= OnRequestClose; vm.Dispose(); };
         }
 
         private void OnRequestClose(object sender, EventArgs e)

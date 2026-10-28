@@ -7,7 +7,7 @@
     <AssemblyName Condition="'$(PreviewAssemblyName)' != ''">$(PreviewAssemblyName)</AssemblyName>
     <RootNamespace>AutocadTools</RootNamespace>
     <DefineConstants Condition="'$(PreviewAssemblyName)' != ''">$(DefineConstants);LIVE_PREVIEW</DefineConstants>
-    <Version>0.1.2</Version>
+    <Version>0.1.3</Version>
     <Product>Autocad Tools</Product>
     <Title>Autocad Tools</Title>
     <Copyright>Copyright (c) 2026 OOXGN (GitHub: OOXGN-OOX). All rights reserved.</Copyright>
@@ -25,14 +25,14 @@
     <OutputPath>bin\$(Configuration)\AutoCAD$(AutoCADVersion)\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="tests\**\*.cs" />
+    <Compile Remove="tests\**\*.cs;ExcelRuntime\**\*.cs" />
     <Compile Remove="tools\**\*.cs" />
     <Compile Include="tools\LivePreview\CommandEntry.cs" Condition="'$(PreviewAssemblyName)' != ''" />
     <Page Remove="tests\**\*.xaml" />
     <Page Remove="tools\**\*.xaml" />
     <PackageReference Include="itext7" Version="9.4.0" />
     <PackageReference Include="itext.bouncy-castle-adapter" Version="9.4.0" />
-    <PackageReference Include="ClosedXML" Version="0.104.2" />
+    <ProjectReference Include="ExcelRuntime/ExcelRuntime.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" GlobalPropertiesToRemove="AutoCADVersion;AutoCADPath;OutputPath;AppendTargetFrameworkToOutputPath;UseAutoCADNuGet;PreviewAssemblyName;BaseIntermediateOutputPath" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="$(ExtensionsVersion)" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(ExtensionsVersion)" />
@@ -54,8 +54,18 @@
     <EmbeddedResource Include="Assets\UpdateRunner.ps1" LogicalName="AutocadTools.UpdateRunner.ps1" />
     <None Update="Assets\WM_FORMAT.dwg" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
+  <ItemGroup>
+    <None Update="Assets\Plotters\**\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
   <Target Name="ValidateAutoCADReferences" BeforeTargets="ResolveReferences">
     <Error Condition="'$(AutoCADVersion)' != '2025' And '$(AutoCADVersion)' != '2026' And '$(AutoCADVersion)' != '2027'" Text="Supported AutoCADVersion values: 2025, 2026, 2027." />
     <Error Condition="'$(UseAutoCADNuGet)' != 'true' And (!Exists('$(AutoCADPath)\accoremgd.dll') Or !Exists('$(AutoCADPath)\acdbmgd.dll') Or !Exists('$(AutoCADPath)\acmgd.dll') Or !Exists('$(AutoCADPath)\AdWindows.dll'))" Text="AutoCAD $(AutoCADVersion) references not found at $(AutoCADPath). Set AutoCADPath to the matching installation or SDK directory." />
+  </Target>
+  <Target Name="CopyExcelRuntime" AfterTargets="Build">
+    <ItemGroup><ExcelRuntimeFiles Include="$(MSBuildThisFileDirectory)ExcelRuntime/bin/$(Configuration)/net8.0/*.dll;$(MSBuildThisFileDirectory)ExcelRuntime/bin/$(Configuration)/net8.0/*.deps.json" /></ItemGroup>
+    <Copy SourceFiles="@(ExcelRuntimeFiles)" DestinationFolder="$(TargetDir)ExcelRuntime" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="CopyLispLibrary" AfterTargets="Build" Condition="'$(SkipLispLibrary)' != 'true'">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\scripts\Expand-LispLibrary.ps1&quot; -ArchivePath &quot;$(MSBuildProjectDirectory)\Library\AdditionalFunctions.zip&quot; -Destination &quot;$(TargetDir)Assets\AdditionalFunctions&quot;" />
   </Target>
 </Project>

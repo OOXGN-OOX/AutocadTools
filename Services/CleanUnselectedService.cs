@@ -1,10 +1,7 @@
-// SPDX-License-Identifier: LicenseRef-AutocadTools-Proprietary-NC-Attribution
-// See LICENSE in the repository root.
-// ============================================================================
+// SPDX-License-Identifier: AGPL-3.0-only
 // OOXGN - Copyright (c) 2026. All rights reserved.
-// Author: OOXGN | Project: AutocadTools
-// ============================================================================
-
+// Author: OOXGN | Project: BotPlusAutocadTool
+// Derived from Davud77/BotPlusAutocadTool (51e3e82). See THIRD-PARTY-NOTICES.md.
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Runtime;
 using System.Collections.Generic;
@@ -41,7 +38,7 @@ namespace AutocadTools.Services
                 if (!isModel && !isPaper) continue;
 
                 // Если это Лист, а пользователь отказался чистить листы -> пропускаем
-                if (isPaper && !cleanLayouts) continue;
+                if (!isModel && isPaper && !cleanLayouts) continue;
 
                 // Проход по объектам внутри пространства
                 foreach (ObjectId entId in btr)
@@ -50,7 +47,9 @@ namespace AutocadTools.Services
                     if (keepIds.Contains(entId)) continue;
 
                     // Получаем объект
-                    Entity ent = (Entity)_tr.GetObject(entId, OpenMode.ForRead);
+                    if (entId.IsNull || !entId.IsValid || entId.IsErased) continue;
+                    Entity ent = (Entity)_tr.GetObject(entId, OpenMode.ForRead, false, forceOpenOnLockedLayer: true);
+                    if (ent is Viewport viewport && viewport.Number == 1) continue;
 
                     // Нельзя удалять Viewport, который является самим листом (обычно первый в списке)
                     // Но проще проверить через исключение или тип, если это специфичный объект листа.
@@ -59,13 +58,6 @@ namespace AutocadTools.Services
                     try
                     {
                         // Проверка на заблокированный слой
-                        LayerTableRecord layer = (LayerTableRecord)_tr.GetObject(ent.LayerId, OpenMode.ForRead);
-                        if (layer.IsLocked)
-                        {
-                            layer.UpgradeOpen();
-                            layer.IsLocked = false;
-                        }
-
                         ent.UpgradeOpen();
                         ent.Erase();
                         deletedCount++;

@@ -1,10 +1,7 @@
-// SPDX-License-Identifier: LicenseRef-AutocadTools-Proprietary-NC-Attribution
-// See LICENSE in the repository root.
-// ============================================================================
+// SPDX-License-Identifier: AGPL-3.0-only
 // OOXGN - Copyright (c) 2026. All rights reserved.
-// Author: OOXGN | Project: AutocadTools
-// ============================================================================
-
+// Author: OOXGN | Project: BotPlusAutocadTool
+// Derived from Davud77/BotPlusAutocadTool (51e3e82). See THIRD-PARTY-NOTICES.md.
 namespace AutocadTools.Models
 {
     public class PlanPrepOptions
@@ -21,5 +18,6 @@ namespace AutocadTools.Models
         public bool DeleteShortSegments { get; set; } = true;   // 7. Удалить короткие
         public bool SetGrayColor { get; set; } = true;          // 8. Цвет в серый
         public bool CreateBlock { get; set; } = true;           // 9. Создать блок
+        public bool PickBasePoint { get; set; }
     }
 }

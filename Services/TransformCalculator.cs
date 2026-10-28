@@ -1,10 +1,7 @@
-// SPDX-License-Identifier: LicenseRef-AutocadTools-Proprietary-NC-Attribution
-// See LICENSE in the repository root.
-// ============================================================================
+// SPDX-License-Identifier: AGPL-3.0-only
 // OOXGN - Copyright (c) 2026. All rights reserved.
-// Author: OOXGN | Project: AutocadTools
-// ============================================================================
-
+// Author: OOXGN | Project: BotPlusAutocadTool
+// Derived from Davud77/BotPlusAutocadTool (51e3e82). See THIRD-PARTY-NOTICES.md.
 using System;
 using Autodesk.AutoCAD.Geometry;
 
@@ -38,8 +35,12 @@ namespace AutocadTools.Services
             Point3d target1, Point3d target2, Point3d target3)
         {
             // Проверка на совпадение точек
-            if (source1.DistanceTo(source2) < DistanceEpsilon || source1.DistanceTo(source3) < DistanceEpsilon)
+            if (source1.DistanceTo(source2) < DistanceEpsilon || source1.DistanceTo(source3) < DistanceEpsilon ||
+                target1.DistanceTo(target2) < DistanceEpsilon || target1.DistanceTo(target3) < DistanceEpsilon)
                 throw new ArgumentException("Точки слишком близко.");
+            if ((source2 - source1).CrossProduct(source3 - source1).Length < Epsilon ||
+                (target2 - target1).CrossProduct(target3 - target1).Length < Epsilon)
+                throw new ArgumentException("Три точки не должны лежать на одной прямой.");
 
             // Расчет базовых углов
             double angS1S2 = GetAngle2d(source1, source2);

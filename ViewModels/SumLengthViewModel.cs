@@ -1,10 +1,7 @@
-// SPDX-License-Identifier: LicenseRef-AutocadTools-Proprietary-NC-Attribution
-// See LICENSE in the repository root.
-// ============================================================================
+// SPDX-License-Identifier: AGPL-3.0-only
 // OOXGN - Copyright (c) 2026. All rights reserved.
-// Author: OOXGN | Project: AutocadTools
-// ============================================================================
-
+// Author: OOXGN | Project: BotPlusAutocadTool
+// Derived from Davud77/BotPlusAutocadTool (51e3e82). See THIRD-PARTY-NOTICES.md.
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
@@ -21,7 +18,7 @@ using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 
 namespace AutocadTools.ViewModels
 {
-    public class SumLengthViewModel : BaseViewModel
+    public partial class SumLengthViewModel : BaseViewModel
     {
         #region Fields
 
@@ -33,6 +30,9 @@ namespace AutocadTools.ViewModels
         private AreaUnit _selectedAreaUnit = AreaUnit.SquareMillimeters;
         private ObservableCollection<LengthGroup> _groups;
         private bool _isListening;
+        private Document _observedDocument;
+        private bool _selectionDirty;
+        private DateTime _nextCalculation;
 
         #endregion
 
@@ -60,8 +60,7 @@ namespace AutocadTools.ViewModels
             set
             {
                 if (value < 1) value = 1;
-                _scaleNumerator = value;
-                OnPropertyChanged();
+                if (!SetProperty(ref _scaleNumerator, value)) return;
                 UpdateScaleForGroups();
                 SaveSettings();
             }
@@ -73,8 +72,7 @@ namespace AutocadTools.ViewModels
             set
             {
                 if (value < 1) value = 1;
-                _scaleDenominator = value;
-                OnPropertyChanged();
+                if (!SetProperty(ref _scaleDenominator, value)) return;
                 UpdateScaleForGroups();
                 SaveSettings();
             }
@@ -89,7 +87,7 @@ namespace AutocadTools.ViewModels
                 if (_scaleNumerator == _scaleDenominator) return "";
                 if (_scaleNumerator == 1 && _scaleDenominator == 1000) return "(мм > м)";
                 if (_scaleNumerator == 1000 && _scaleDenominator == 1) return "(м > мм)";
-                return $"(?{ScaleFactor:G4})";
+                return $"(×{ScaleFactor:G4})";
             }
         }
 
@@ -98,8 +96,8 @@ namespace AutocadTools.ViewModels
             get => _selectedLengthUnit;
             set
             {
-                _selectedLengthUnit = value;
-                OnPropertyChanged();
+                if (!SetProperty(ref _selectedLengthUnit, value)) return;
+                OnPropertyChanged(nameof(LengthUnitIndex));
                 OnPropertyChanged(nameof(TotalLengthFormatted));
                 UpdateLengthUnitForGroups();
                 SaveSettings();
@@ -111,8 +109,8 @@ namespace AutocadTools.ViewModels
             get => _selectedAreaUnit;
             set
             {
-                _selectedAreaUnit = value;
-                OnPropertyChanged();
+                if (!SetProperty(ref _selectedAreaUnit, value)) return;
+                OnPropertyChanged(nameof(AreaUnitIndex));
                 OnPropertyChanged(nameof(TotalAreaFormatted));
                 UpdateAreaUnitForGroups();
                 SaveSettings();
@@ -121,6 +119,8 @@ namespace AutocadTools.ViewModels
 
         public Array LengthUnits => Enum.GetValues(typeof(LengthUnit));
         public Array AreaUnits => Enum.GetValues(typeof(AreaUnit));
+        public int LengthUnitIndex { get => (int)SelectedLengthUnit; set { if (value >= 0 && value <= 2) SelectedLengthUnit = (LengthUnit)value; } }
+        public int AreaUnitIndex { get => (int)SelectedAreaUnit; set { if (value >= 0 && value <= 2) SelectedAreaUnit = (AreaUnit)value; } }
 
         #endregion
 
@@ -134,7 +134,6 @@ namespace AutocadTools.ViewModels
 
         #region Events
 
-        public Action WindowClosing;
 
         #endregion
 
@@ -146,6 +145,7 @@ namespace AutocadTools.ViewModels
             ZoomToObjectCommand = new RelayCommand(ZoomToObject);
             CopyLengthCommand = new RelayCommand(CopyLength);
             CopyAreaCommand = new RelayCommand(CopyArea);
+            InitializeCalculator();
 
             LoadSettings();
             StartListening();
@@ -182,32 +182,65 @@ namespace AutocadTools.ViewModels
         public void StartListening()
         {
             if (_isListening) return;
-
-            var doc = AcadApp.DocumentManager.MdiActiveDocument;
-            if (doc != null)
-            {
-                doc.ImpliedSelectionChanged += OnSelectionChanged;
-                _isListening = true;
-            }
+            _isListening = true;
+            AcadApp.DocumentManager.DocumentActivated += OnDocumentActivated;
+            AcadApp.DocumentManager.DocumentToBeDestroyed += OnDocumentClosing;
+            AcadApp.Idle += OnIdle;
+            AttachDocument(AcadApp.DocumentManager.MdiActiveDocument);
         }
 
         public void StopListening()
         {
             if (!_isListening) return;
-
-            var doc = AcadApp.DocumentManager.MdiActiveDocument;
-            if (doc != null)
-            {
-                doc.ImpliedSelectionChanged -= OnSelectionChanged;
-                _isListening = false;
-            }
+            _isListening = false;
+            AcadApp.Idle -= OnIdle;
+            AcadApp.DocumentManager.DocumentActivated -= OnDocumentActivated;
+            AcadApp.DocumentManager.DocumentToBeDestroyed -= OnDocumentClosing;
+            AttachDocument(null);
         }
 
-        private void OnSelectionChanged(object sender, EventArgs e)
+        protected override void OnDisposing() => StopListening();
+
+        private void AttachDocument(Document document)
         {
-            CalculateFromCurrentSelection();
+            if (_observedDocument != null)
+            {
+                _observedDocument.ImpliedSelectionChanged -= OnSelectionChanged;
+                _observedDocument.CommandEnded -= OnSelectionChanged;
+                _observedDocument.CommandCancelled -= OnSelectionChanged;
+                _observedDocument.CommandFailed -= OnSelectionChanged;
+            }
+            _observedDocument = document;
+            if (document != null)
+            {
+                document.ImpliedSelectionChanged += OnSelectionChanged;
+                document.CommandEnded += OnSelectionChanged;
+                document.CommandCancelled += OnSelectionChanged;
+                document.CommandFailed += OnSelectionChanged;
+            }
+            _selectionDirty = true;
         }
 
+        private void OnDocumentActivated(object sender, DocumentCollectionEventArgs args) => AttachDocument(args.Document);
+        private void OnDocumentClosing(object sender, DocumentCollectionEventArgs args)
+        {
+            if (ReferenceEquals(args.Document, _observedDocument)) AttachDocument(null);
+        }
+        private void OnSelectionChanged(object sender, EventArgs args) => _selectionDirty = true;
+
+        private void OnIdle(object sender, EventArgs args)
+        {
+            if (!_selectionDirty || DateTime.UtcNow < _nextCalculation) return;
+            try
+            {
+                var document = AcadApp.DocumentManager.MdiActiveDocument;
+                if (document != null && !string.IsNullOrEmpty(document.CommandInProgress)) return;
+                _selectionDirty = false;
+                _nextCalculation = DateTime.UtcNow.AddMilliseconds(150);
+                CalculateFromCurrentSelection();
+            }
+            catch (System.Exception ex) { Infrastructure.PluginLog.Error("Refresh length window", ex); }
+        }
         #endregion
 
         #region Methods
@@ -215,31 +248,35 @@ namespace AutocadTools.ViewModels
         public void CalculateFromCurrentSelection()
         {
             var doc = AcadApp.DocumentManager.MdiActiveDocument;
-            if (doc == null) return;
+            if (doc == null) { ClearSelection(); return; }
 
             var psr = doc.Editor.SelectImplied();
             if (psr.Status == PromptStatus.OK)
             {
-                ProcessSelection(psr.Value.GetObjectIds());
+                using (psr.Value) ProcessSelection(psr.Value.GetObjectIds());
             }
             else
             {
-                Groups.Clear();
-                _rawTotalLength = 0;
-                _rawTotalArea = 0;
-                UpdateTotals();
+                ClearSelection();
             }
         }
 
+        private void ClearSelection()
+        {
+            Groups.Clear();
+            _rawTotalLength = _rawTotalArea = 0;
+            UpdateTotals();
+        }
         private void ProcessSelection(ObjectId[] ids)
         {
             var doc = AcadApp.DocumentManager.MdiActiveDocument;
-            using (var tr = doc.Database.TransactionManager.StartTransaction())
+            using (doc.LockDocument())
+            using (var tr = doc.Database.TransactionManager.StartOpenCloseTransaction())
             {
                 var service = new LengthService();
                 var results = service.CalculateLengths(tr, ids);
 
-                Groups.Clear();
+                Groups = new ObservableCollection<LengthGroup>();
                 _rawTotalLength = 0;
                 _rawTotalArea = 0;
 
@@ -260,6 +297,7 @@ namespace AutocadTools.ViewModels
 
         private void UpdateScaleForGroups()
         {
+            Calculate(false);
             OnPropertyChanged(nameof(ScaleFactor));
             OnPropertyChanged(nameof(ScaleInfo));
             OnPropertyChanged(nameof(TotalLength));
@@ -278,6 +316,7 @@ namespace AutocadTools.ViewModels
 
         private void UpdateLengthUnitForGroups()
         {
+            Calculate(false);
             if (Groups != null)
             {
                 foreach (var group in Groups)
@@ -289,6 +328,7 @@ namespace AutocadTools.ViewModels
 
         private void UpdateAreaUnitForGroups()
         {
+            Calculate(false);
             if (Groups != null)
             {
                 foreach (var group in Groups)
@@ -300,6 +340,7 @@ namespace AutocadTools.ViewModels
 
         private void UpdateTotals()
         {
+            Calculate(false);
             OnPropertyChanged(nameof(TotalLength));
             OnPropertyChanged(nameof(TotalArea));
             OnPropertyChanged(nameof(TotalLengthFormatted));
@@ -314,12 +355,13 @@ namespace AutocadTools.ViewModels
             if (parameter is not LengthItem item) return;
 
             var doc = AcadApp.DocumentManager.MdiActiveDocument;
-            if (doc == null) return;
+            if (doc == null || item.ObjectId.IsNull || item.ObjectId.Database != doc.Database) return;
 
             try
             {
                 using (doc.LockDocument())
-                using (var tr = doc.Database.TransactionManager.StartTransaction())
+                using (doc.LockDocument())
+                using (var tr = doc.Database.TransactionManager.StartOpenCloseTransaction())
                 {
                     var ent = tr.GetObject(item.ObjectId, OpenMode.ForRead) as Entity;
                     if (ent != null)

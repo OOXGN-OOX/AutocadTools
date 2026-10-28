@@ -68,7 +68,7 @@ Workflow `Release` запускается при изменении `main` ил�
 
 Артефакты сначала загружаются в черновик выпуска. Публикация выполняется после загрузки всех файлов, поэтому плагин не получает незавершённое обновление. Незавершённый черновик можно продолжить повторным запуском workflow в `main`; опубликованные выпуски не перезаписываются. Тег существующего черновика должен указывать на те же исходники.
 
-Workflow `Verify development cycle` запускается вручную для проверки исходников. Сборка и публикация выпуска используют токен GitHub Actions с разрешением `contents: write`.
+Workflow `Verify development cycle` запускается вручную для проверки исходников. Параметр `distribution` дополнительно собирает EXE, bundle и контрольные суммы из выбранного коммита, сохраняя их как артефакт Actions. Теги и GitHub Release при этом не создаются. Сборка и публикация выпуска используют токен GitHub Actions с разрешением `contents: write`.
 
 ### Полный локальный дистрибутив
 
@@ -134,3 +134,20 @@ dotnet run --project .\tests\UpdateChecks\UpdateChecks.csproj -c Release -f net1
 ```
 
 Отдельные тесты загрузки выполняются через `tests/AutoCADSmoke` в AutoCAD 2026 или 2027 Core Console. Состав и границы проверок — в [VALIDATION.md](VALIDATION.md).
+
+### Модули Excel, LISP и PDF
+
+`ExcelRuntime` собирается отдельно на .NET 8. Его ClosedXML и зависимости находятся в подкаталоге `ExcelRuntime` обеих линий DLL и загружаются в отдельном `AssemblyLoadContext`. Сборщик уведомлений читает оба графа NuGet, включая `ExcelRuntime/obj/project.assets.json`.
+
+`Library/AdditionalFunctions.zip` распаковывается после сборки в `Assets/AdditionalFunctions`. SHA256-маркер позволяет повторно использовать неизменный архив. Скрипт распаковки работает в Windows PowerShell 5.1 через .NET; выход за пределы целевого каталога запрещён. Файлы плоттера находятся в `Assets/Plotters`; при изменении каталога бумаги их можно пересоздать командой `pwsh -File scripts/Build-PdfPlotter.ps1`.
+
+`dev.cmd Test -Suite Core` проверяет импортированные алгоритмы на .NET 8 и 10. Дополнительные нативные проверки AutoCAD 2026 запускаются отдельно:
+
+```powershell
+.\scripts\Test-Integration.ps1 -Year 2026
+.\scripts\Test-Integration.ps1 -Year 2026 -Kind Plot
+.\scripts\Test-Integration.ps1 -Year 2026 -Kind Gost
+.\scripts\Test-Integration.ps1 -Year 2026 -Kind Library
+```
+
+Эти проверки используют копию DWG, отдельный профиль Core Console и временный каталог данных. `Gost` проверяет 100 сочетаний стандартных и кратных форматов, ориентаций и масштабов 1:1/1:100, а также произвольные рамки. Проверки Core Console не заменяют проверку фоновой очереди и внешних редакторов в полном приложении.

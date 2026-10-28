@@ -1,11 +1,11 @@
-param([Parameter(Mandatory=$true)][string]$BundlePath)
+﻿param([Parameter(Mandatory=$true)][string]$BundlePath)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 $destination = Join-Path $BundlePath 'ThirdPartyNotices'
 New-Item -ItemType Directory -Path $destination -Force | Out-Null
 $seen = @{}
-foreach ($year in @(2025,2027)) {
-    $assetsPath = Join-Path $root "obj\AutoCAD$year\project.assets.json"
+foreach ($assetsRelative in @("obj\AutoCAD2025\project.assets.json", "obj\AutoCAD2027\project.assets.json", "ExcelRuntime\obj\project.assets.json")) {
+    $assetsPath = Join-Path $root $assetsRelative
     $assets = Get-Content -LiteralPath $assetsPath -Raw -Encoding UTF8 | ConvertFrom-Json
     foreach ($entry in $assets.libraries.PSObject.Properties) {
         if ($entry.Value.type -ne 'package' -or $entry.Name -like 'AutoCAD.NET*' -or $seen.ContainsKey($entry.Name)) { continue }
@@ -29,4 +29,5 @@ foreach ($year in @(2025,2027)) {
 }
 Copy-Item -LiteralPath (Join-Path $root 'LICENSE') -Destination (Join-Path $BundlePath 'LICENSE') -Force
 Copy-Item -LiteralPath (Join-Path $root 'THIRD-PARTY-NOTICES.md') -Destination $destination -Force
+Copy-Item -LiteralPath (Join-Path $root "LICENSES") -Destination $destination -Recurse -Force
 Write-Output "Notices collected: $($seen.Count) packages"

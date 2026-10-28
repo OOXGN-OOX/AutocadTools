@@ -12,7 +12,8 @@ namespace AutocadTools.Services
         {
             get
             {
-                var directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AutocadTools");
+                var configured = Environment.GetEnvironmentVariable("AUTOCADTOOLS_DATA_DIRECTORY");
+                var directory = string.IsNullOrWhiteSpace(configured) ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AutocadTools") : Path.GetFullPath(configured);
                 Directory.CreateDirectory(directory);
                 return directory;
             }

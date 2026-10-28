@@ -112,17 +112,7 @@ namespace AutocadTools.ViewModels
                 System.Windows.MessageBox.Show("Значение поля штампа не должно превышать 1000 символов.", "Autocad Tools");
                 return;
             }
-            var properties = new StampProperties();
-
-            // Собираем данные из словаря
-            foreach (var field in FieldsMap.Values)
-            {
-                properties.SetValue(field.Key, field.Value);
-            }
-
-            WriteText(properties, "Обозначение_документа", ОбозначениеДокумента);
-            WriteText(properties, "Наименование_объекта", НаименованиеОбъекта);
-            WriteText(properties, "Наименование_участка", НаименованиеУчастка);
+            var properties = CaptureValues();
             try
             {
                 if (_autoCADService is IStampSignatureService signatureService)
@@ -144,6 +134,30 @@ namespace AutocadTools.ViewModels
                 return (part1 + part2).Trim();
             // Compatibility with old values split into two trimmed words.
             return part1.Trim() + " " + part2.Trim();
+        }
+
+        public StampProperties CaptureValues(bool empty = false)
+        {
+            if (empty)
+            {
+                var blank = new StampProperties();
+                foreach (var key in StampSchema.Keys) blank.SetValue(key, " ");
+                return blank;
+            }
+            if (new[] { ОбозначениеДокумента, НаименованиеОбъекта, НаименованиеУчастка }.Any(value => (value?.Trim().Length ?? 0) > 1000))
+                throw new ArgumentException("Значение поля штампа не должно превышать 1000 символов.");
+            var properties = new StampProperties();
+
+            // Собираем данные из словаря
+            foreach (var field in FieldsMap.Values)
+            {
+                properties.SetValue(field.Key, field.Value);
+            }
+
+            WriteText(properties, "Обозначение_документа", ОбозначениеДокумента);
+            WriteText(properties, "Наименование_объекта", НаименованиеОбъекта);
+            WriteText(properties, "Наименование_участка", НаименованиеУчастка);
+            return properties;
         }
 
         private string ReadText(StampProperties properties, string key)

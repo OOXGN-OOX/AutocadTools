@@ -1,10 +1,7 @@
-// SPDX-License-Identifier: LicenseRef-AutocadTools-Proprietary-NC-Attribution
-// See LICENSE in the repository root.
-// ============================================================================
+// SPDX-License-Identifier: AGPL-3.0-only
 // OOXGN - Copyright (c) 2026. All rights reserved.
-// Author: OOXGN | Project: AutocadTools
-// ============================================================================
-
+// Author: OOXGN | Project: BotPlusAutocadTool
+// Derived from Davud77/BotPlusAutocadTool (51e3e82). See THIRD-PARTY-NOTICES.md.
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 using System;
@@ -21,45 +18,56 @@ namespace AutocadTools.Services
 
         public SelectSimilarService(SelectSimilarOptions options)
         {
-            _opts = options;
+            _opts = options ?? throw new ArgumentNullException(nameof(options));
         }
 
         public List<ObjectId> FindSimilar(Transaction tr, BlockTableRecord space, List<Entity> sources)
         {
-            List<ObjectId> result = new List<ObjectId>();
+            if (tr == null) throw new ArgumentNullException(nameof(tr));
+            if (space == null) throw new ArgumentNullException(nameof(space));
+            if (sources == null) throw new ArgumentNullException(nameof(sources));
+            var result = new List<ObjectId>();
+            if (sources.Count == 0) return result;
 
-            // Проходим по всем объектам в пространстве
+            // Only compare sources that can pass the mandatory type/layer filters.
+            var buckets = new Dictionary<(Type, ObjectId), List<Entity>>();
+            var sourceIds = new HashSet<ObjectId>();
+            var cache = new ComparisonCache();
+            foreach (var source in sources)
+            {
+                if (source == null || source.IsErased) continue;
+                sourceIds.Add(source.ObjectId);
+                var key = GetKey(source);
+                if (!buckets.TryGetValue(key, out var bucket)) buckets[key] = bucket = new List<Entity>();
+                bucket.Add(source);
+            }
             foreach (ObjectId id in space)
             {
-                // Если объект - сам источник, решаем добавлять или нет
-                if (sources.Any(s => s.ObjectId == id))
+                if (id.IsNull || !id.IsValid || id.IsErased) continue;
+                if (sourceIds.Contains(id))
                 {
                     if (_opts.AddSourceObjects) result.Add(id);
                     continue;
                 }
-
-                Entity candidate = tr.GetObject(id, OpenMode.ForRead) as Entity;
-                if (candidate == null) continue;
-
-                // Сравниваем кандидата с каждым из источников.
-                // Если он похож ХОТЯ БЫ НА ОДИН источник — выбираем его.
-                foreach (var source in sources)
+                if (tr.GetObject(id, OpenMode.ForRead) is not Entity candidate) continue;
+                if (!buckets.TryGetValue(GetKey(candidate), out var candidates)) continue;
+                foreach (var source in candidates)
                 {
-                    if (IsSimilar(source, candidate, tr))
-                    {
-                        result.Add(id);
-                        break; // Достаточно одного совпадения
-                    }
+                    if (!IsSimilar(source, candidate, tr, cache)) continue;
+                    result.Add(id);
+                    break;
                 }
             }
             return result;
         }
 
-        private bool IsSimilar(Entity source, Entity target, Transaction tr)
+        private (Type, ObjectId) GetKey(Entity entity) =>
+            (_opts.MatchType ? entity.GetType() : null, _opts.MatchLayer ? entity.LayerId : ObjectId.Null);
+        private bool IsSimilar(Entity source, Entity target, Transaction tr, ComparisonCache cache)
         {
             // 1. Общие проверки
             if (_opts.MatchType && source.GetType() != target.GetType()) return false;
-            if (_opts.MatchLayer && source.Layer != target.Layer) return false;
+            if (_opts.MatchLayer && source.LayerId != target.LayerId) return false;
             if (_opts.MatchColor && !source.Color.Equals(target.Color)) return false;
             if (_opts.MatchLinetype && source.LinetypeId != target.LinetypeId) return false;
             if (_opts.MatchLinetypeScale && Math.Abs(source.LinetypeScale - target.LinetypeScale) > Tolerance) return false;
@@ -67,7 +75,7 @@ namespace AutocadTools.Services
 
             // 2. Специфичные проверки
             if (source is BlockReference srcBlk && target is BlockReference tgtBlk)
-                return CheckBlock(srcBlk, tgtBlk, tr);
+                return CheckBlock(srcBlk, tgtBlk, tr, cache);
 
             if (source is Circle srcCirc && target is Circle tgtCirc)
                 return CheckCircle(srcCirc, tgtCirc);
@@ -93,15 +101,22 @@ namespace AutocadTools.Services
             if (source is Hatch srcHatch && target is Hatch tgtHatch)
                 return CheckHatch(srcHatch, tgtHatch);
 
-            // Если тип не специфичный, но общие проверки прошли -> true
+            if (_opts.ImagePath && source is RasterImage sourceImage && target is RasterImage targetImage)
+            {
+                var sourceDefinition = (RasterImageDef)tr.GetObject(sourceImage.ImageDefId, OpenMode.ForRead);
+                var targetDefinition = (RasterImageDef)tr.GetObject(targetImage.ImageDefId, OpenMode.ForRead);
+                return string.Equals(sourceDefinition.SourceFileName, targetDefinition.SourceFileName, StringComparison.OrdinalIgnoreCase);
+            }
+
+            // Other types use the enabled general filters.
             return true;
         }
 
         // --- Методы проверки ---
 
-        private bool CheckBlock(BlockReference s, BlockReference t, Transaction tr)
+        private bool CheckBlock(BlockReference s, BlockReference t, Transaction tr, ComparisonCache cache)
         {
-            if (_opts.BlockName && GetEffectiveName(s, tr) != GetEffectiveName(t, tr)) return false;
+            if (_opts.BlockName && GetEffectiveName(s, tr, cache) != GetEffectiveName(t, tr, cache)) return false;
 
             if (_opts.BlockScale)
             {
@@ -113,8 +128,8 @@ namespace AutocadTools.Services
             // Атрибуты (сложная логика)
             if (_opts.BlockAnyAttribute || _opts.BlockAllAttributes)
             {
-                var sAtts = GetAttributes(s, tr);
-                var tAtts = GetAttributes(t, tr);
+                var sAtts = GetAttributes(s, tr, cache);
+                var tAtts = GetAttributes(t, tr, cache);
 
                 if (_opts.BlockAllAttributes)
                 {
@@ -182,19 +197,8 @@ namespace AutocadTools.Services
         {
             if (_opts.DimStyle && s.DimensionStyle != t.DimensionStyle) return false;
             if (_opts.DimTextOverride && s.DimensionText != t.DimensionText) return false;
-            // Value для размеров вычисляется по-разному для разных типов, упростим до Measurement если есть
-            if (_opts.DimValue)
-            {
-                // Это базовая проверка, для RotatedDimension и Aligned работает
-                try
-                {
-                    double sVal = (double)s.GetType().GetProperty("Measurement").GetValue(s);
-                    double tVal = (double)t.GetType().GetProperty("Measurement").GetValue(t);
-                    if (Math.Abs(sVal - tVal) > Tolerance) return false;
-                }
-                catch { }
-            }
-            return true;
+            if (_opts.DimValue && Math.Abs(s.Measurement - t.Measurement) > Tolerance) return false;
+            if (_opts.DimTextRotation && Math.Abs(s.TextRotation - t.TextRotation) > Tolerance) return false; return true;
         }
 
         private bool CheckMLeader(MLeader s, MLeader t)
@@ -202,7 +206,9 @@ namespace AutocadTools.Services
             // Для MLeader контент сложнее, проверим если это MText
             if (_opts.MLeaderContent && s.ContentType == ContentType.MTextContent && t.ContentType == ContentType.MTextContent)
             {
-                if (s.MText.Contents != t.MText.Contents) return false;
+                using var sourceText = s.MText;
+                using var targetText = t.MText;
+                if (sourceText?.Contents != targetText?.Contents) return false;
             }
             return true;
         }
@@ -216,18 +222,22 @@ namespace AutocadTools.Services
 
         // --- Вспомогательные ---
 
-        private string GetEffectiveName(BlockReference blk, Transaction tr)
+        private string GetEffectiveName(BlockReference blk, Transaction tr, ComparisonCache cache)
         {
+            if (cache.BlockNames.TryGetValue(blk.ObjectId, out var name)) return name;
             if (blk.IsDynamicBlock)
             {
                 var btr = (BlockTableRecord)tr.GetObject(blk.DynamicBlockTableRecord, OpenMode.ForRead);
-                return btr.Name;
+                name = btr.Name;
             }
-            return blk.Name;
+            else name = blk.Name;
+            cache.BlockNames[blk.ObjectId] = name;
+            return name;
         }
 
-        private Dictionary<string, string> GetAttributes(BlockReference blk, Transaction tr)
+        private Dictionary<string, string> GetAttributes(BlockReference blk, Transaction tr, ComparisonCache cache)
         {
+            if (cache.Attributes.TryGetValue(blk.ObjectId, out var existing)) return existing;
             var dict = new Dictionary<string, string>();
             foreach (ObjectId attId in blk.AttributeCollection)
             {
@@ -235,7 +245,14 @@ namespace AutocadTools.Services
                 if (!dict.ContainsKey(att.Tag))
                     dict.Add(att.Tag, att.TextString);
             }
+            cache.Attributes[blk.ObjectId] = dict;
             return dict;
+        }
+
+        private sealed class ComparisonCache
+        {
+            internal readonly Dictionary<ObjectId, string> BlockNames = new();
+            internal readonly Dictionary<ObjectId, Dictionary<string, string>> Attributes = new();
         }
     }
 }

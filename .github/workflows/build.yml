@@ -1,6 +1,11 @@
 name: Verify development cycle
 on:
   workflow_dispatch:
+    inputs:
+      distribution:
+        description: Build a reviewable installer and bundle
+        type: boolean
+        default: false
   workflow_call:
 permissions:
   contents: read
@@ -17,3 +22,29 @@ jobs:
       - name: Structure, scripts and standalone regression tests
         shell: cmd
         run: dev.cmd Test
+  package:
+    if: github.event_name == 'workflow_dispatch' && inputs.distribution
+    needs: verify
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Read package version
+        id: version
+        shell: pwsh
+        run: |
+          $version = ([xml](Get-Content AutocadTools.csproj -Raw)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+          "version=$version" >> $env:GITHUB_OUTPUT
+      - name: Build distribution
+        shell: cmd
+        run: build.cmd
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AutocadTools-${{ steps.version.outputs.version }}
+          path: |
+            artifacts/release/AutocadTools-${{ steps.version.outputs.version }}-Setup.exe
+            artifacts/release/AutocadTools-${{ steps.version.outputs.version }}-Bundle.zip
+            artifacts/release/SHA256SUMS.txt
+          if-no-files-found: error

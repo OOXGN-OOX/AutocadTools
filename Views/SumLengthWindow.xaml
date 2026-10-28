@@ -17,6 +17,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <!-- 1. Total Length + Area with separate copy -->
@@ -128,8 +129,25 @@
                 </StackPanel>
             </Grid>
         </Border>
+        <Expander Grid.Row="3" Header="Калькулятор" Margin="0,0,0,12">
+            <StackPanel Margin="0,8,0,0">
+                <TextBlock Text="L — длина, A — площадь в выбранных единицах" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondary}"/>
+                <TextBox Text="{Binding CalculatorExpression, UpdateSourceTrigger=PropertyChanged}" Margin="0,8,0,8" AutomationProperties.Name="Выражение калькулятора">
+                    <TextBox.InputBindings><KeyBinding Key="Enter" Command="{Binding CalculateCommand}"/></TextBox.InputBindings>
+                </TextBox>
+                <WrapPanel>
+                    <Button Content="=" Command="{Binding CalculateCommand}" Margin="0,0,8,0"/>
+                    <Button Content="L" Command="{Binding CalculatorKeyCommand}" CommandParameter="L" Margin="0,0,8,0"/>
+                    <Button Content="A" Command="{Binding CalculatorKeyCommand}" CommandParameter="A" Margin="0,0,8,0"/>
+                    <Button Content="Очистить" Command="{Binding CalculatorKeyCommand}" CommandParameter="C" Margin="0,0,8,0"/>
+                    <Button Content="Копировать" Command="{Binding CopyCalculatorCommand}"/>
+                </WrapPanel>
+                <TextBlock Text="{Binding CalculatorResult}" FontSize="18" Margin="0,8,0,0"/>
+                <TextBlock Text="{Binding CalculatorError}" TextWrapping="Wrap" Foreground="{DynamicResource ErrorBrush}"/>
+            </StackPanel>
+        </Expander>
         <!-- 4. List of Groups with Items -->
-        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto">
             <ItemsControl ItemsSource="{Binding Groups}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>

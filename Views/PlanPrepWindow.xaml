@@ -29,11 +29,14 @@
                         <CheckBox Content="Удалить точки" IsChecked="{Binding Options.DeletePoints}"/>
                         <CheckBox Content="Соединить линии в полилинии" IsChecked="{Binding Options.JoinLines}"/>
                         <CheckBox Content="Удалить сегменты короче 0,01 ед." IsChecked="{Binding Options.DeleteShortSegments}"/>
-                        <CheckBox Content="Установить серый цвет (8)" IsChecked="{Binding Options.SetGrayColor}"/>
+                        <CheckBox Content="Установить серый цвет (252)" IsChecked="{Binding Options.SetGrayColor}"/>
                     </StackPanel>
                 </GroupBox>
                 <Border BorderBrush="{DynamicResource Divider}" BorderThickness="0,1,0,0" Padding="0,12,0,0">
-                    <CheckBox Content="Собрать результат в единый блок" IsChecked="{Binding Options.CreateBlock}"/>
+                    <StackPanel>
+                        <CheckBox Content="Собрать результат в единый блок" IsChecked="{Binding Options.CreateBlock}"/>
+                        <CheckBox Content="Указать базовую точку блока" IsChecked="{Binding Options.PickBasePoint}" IsEnabled="{Binding Options.CreateBlock}"/>
+                    </StackPanel>
                 </Border>
             </StackPanel>
         </ScrollViewer>

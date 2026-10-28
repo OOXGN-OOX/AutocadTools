@@ -19,7 +19,7 @@ C:\Program Files\Autodesk\ApplicationPlugins\AutocadTools.bundle
 
 Установщик выбирает DLL через манифест bundle: линия .NET 8 для AutoCAD 2025–2026, линия .NET 10 для 2027. Он не устанавливает AutoCAD и не отключает `SECURELOAD`. При необходимости проверьте `APPAUTOLOAD`, доверенный путь и сообщения AutoCAD.
 
-Для ручной установки распакуйте ZIP с bundle и скопируйте `AutocadTools.bundle` в стандартную папку `ApplicationPlugins`. Для отдельной проверки через `NETLOAD` выбирайте DLL именно вашей линии:
+Для ручной установки распакуйте ZIP с bundle и скопируйте `AutocadTools.bundle` в стандартную папку `ApplicationPlugins`. Сохраняйте рядом с DLL подкаталоги `ExcelRuntime` и `Assets`, включая библиотеку дополнительных функций. Для отдельной проверки через `NETLOAD` выбирайте DLL именно вашей линии:
 
 ```text
 Contents\Windows\2025-2026\AutocadTools.dll

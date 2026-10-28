@@ -1,12 +1,7 @@
-// SPDX-License-Identifier: LicenseRef-AutocadTools-Proprietary-NC-Attribution
-// See LICENSE in the repository root.
-// ============================================================================
+// SPDX-License-Identifier: AGPL-3.0-only
 // OOXGN - Copyright (c) 2026. All rights reserved.
-// Author: OOXGN | Project: AutocadTools
-// ============================================================================
-
-// File: Models/BatchPlotItem.cs
-
+// Author: OOXGN | Project: BotPlusAutocadTool
+// Derived from Davud77/BotPlusAutocadTool (51e3e82). See THIRD-PARTY-NOTICES.md.
 using System;
 using System.ComponentModel;
 using System.IO;
@@ -45,6 +40,9 @@ namespace AutocadTools.Models
         /// НОВОЕ: Определение формата (ТОЧНЫЕ размеры по ГОСТ) для использования в PageSetup
         /// </summary>
         public PaperFormatDefinition FormatDefinition { get; set; }
+        public int PlotScale { get; set; } = 1;
+        public double PlotWidthMm { get; set; }
+        public double PlotHeightMm { get; set; }
 
         #endregion
 

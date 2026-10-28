@@ -1,12 +1,7 @@
-// SPDX-License-Identifier: LicenseRef-AutocadTools-Proprietary-NC-Attribution
-// See LICENSE in the repository root.
-// ============================================================================
+// SPDX-License-Identifier: AGPL-3.0-only
 // OOXGN - Copyright (c) 2026. All rights reserved.
-// Author: OOXGN | Project: AutocadTools
-// ============================================================================
-
-// File: ViewModels/BatchPlotViewModel.cs
-
+// Author: OOXGN | Project: BotPlusAutocadTool
+// Derived from Davud77/BotPlusAutocadTool (51e3e82). See THIRD-PARTY-NOTICES.md.
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -73,6 +68,24 @@ namespace AutocadTools.ViewModels
 
         public List<string> AllFormatNames { get; private set; }
 
+        public bool IsTopToBottom { get => _service.SearchOrder == PlotSearchOrder.TopToBottom; set { if (value) SetSearchOrder(PlotSearchOrder.TopToBottom); } }
+        public bool IsBottomToTop { get => _service.SearchOrder == PlotSearchOrder.BottomToTop; set { if (value) SetSearchOrder(PlotSearchOrder.BottomToTop); } }
+        public bool IsLeftToRight { get => _service.SearchOrder == PlotSearchOrder.LeftToRight; set { if (value) SetSearchOrder(PlotSearchOrder.LeftToRight); } }
+        public bool IsRightToLeft { get => _service.SearchOrder == PlotSearchOrder.RightToLeft; set { if (value) SetSearchOrder(PlotSearchOrder.RightToLeft); } }
+
+        private void SetSearchOrder(PlotSearchOrder order)
+        {
+            if (_service.SearchOrder == order || IsBusy) return;
+            _service.SearchOrder = order;
+            UserPreferences.Write("BatchPlotOrder", new Newtonsoft.Json.Linq.JObject { ["Direction"] = order.ToString() });
+            // Reuse the items to keep edited titles, numbers and checkboxes.
+            Items = new ObservableCollection<BatchPlotItem>(_service.SortFrames(Items));
+            OnPropertyChanged(nameof(IsTopToBottom));
+            OnPropertyChanged(nameof(IsBottomToTop));
+            OnPropertyChanged(nameof(IsLeftToRight));
+            OnPropertyChanged(nameof(IsRightToLeft));
+        }
+
         public string StatusMessage
         {
             get => _statusMessage;
@@ -106,7 +119,40 @@ namespace AutocadTools.ViewModels
             {
                 if (_plotInBackground == value) return;
                 _plotInBackground = value;
+                SettingsService.Settings.PlotInBackground = value;
+                SettingsService.Save();
                 OnPropertyChanged();
+            }
+        }
+
+        private string _outputDirectory = SettingsService.Settings.PlotOutputDirectory;
+        public string OutputDirectory
+        {
+            get => _outputDirectory;
+            set
+            {
+                if (!SetProperty(ref _outputDirectory, value)) return;
+                SettingsService.Settings.PlotOutputDirectory = value ?? "";
+                SettingsService.Save();
+            }
+        }
+        public bool KeepExistingPdfFiles
+        {
+            get => SettingsService.Settings.KeepExistingPdfFiles;
+            set { SettingsService.Settings.KeepExistingPdfFiles = value; SettingsService.Save(); OnPropertyChanged(); }
+        }
+        public int PlotScaleIndex
+        {
+            get => _service.PlotScale == 100 ? 1 : 0;
+            set
+            {
+                int scale = value == 1 ? 100 : 1;
+                if (_service.PlotScale == scale) return;
+                _service.PlotScale = scale;
+                SettingsService.Settings.PlotScale = scale;
+                SettingsService.Save();
+                OnPropertyChanged();
+                LoadData();
             }
         }
 
@@ -143,14 +189,24 @@ namespace AutocadTools.ViewModels
         public ICommand DeselectAllCommand { get; }
 
         public ICommand SetFormatkaCommand { get; }
-        public ICommand AllFormatkiCommand { get; }
         public ICommand SelectFormatkiCommand { get; }
+        public ICommand InsertIndexCommand { get; }
+        public ICommand BrowseOutputCommand { get; }
 
         #endregion
 
-        public BatchPlotViewModel()
+        private readonly Action<Action> _drawingInteraction;
+
+        public BatchPlotViewModel(Action<Action> drawingInteraction = null)
         {
+            _drawingInteraction = drawingInteraction ?? (operation => operation());
             _service = new BatchPlotService();
+            if (Enum.TryParse(UserPreferences.Read("BatchPlotOrder").Value<string>("Direction"), out PlotSearchOrder order)
+                && Enum.IsDefined(typeof(PlotSearchOrder), order)) _service.SearchOrder = order;
+            var filter = UserPreferences.Read("BatchPlotFilter");
+            _service.BlockName = filter.Value<string>("Block") ?? BatchPlotService.DefaultBlockName;
+            _service.LayerName = filter.Value<string>("Layer") ?? BatchPlotService.DefaultLayerName;
+            _plotInBackground = SettingsService.Settings.PlotInBackground;
 
             AllFormatNames = _service.GetDefinedFormatNames();
             Items = new ObservableCollection<BatchPlotItem>();
@@ -163,15 +219,45 @@ namespace AutocadTools.ViewModels
             SelectAllCommand = new RelayCommand(_ => SelectAll(), _ => !IsBusy && Items.Any());
             DeselectAllCommand = new RelayCommand(_ => DeselectAll(), _ => !IsBusy && Items.Any());
 
-            SetFormatkaCommand = new RelayCommand(_ => ExecuteSetFormatka(), _ => !IsBusy);
+            SetFormatkaCommand = new RelayCommand(_ => _drawingInteraction(ExecuteSetFormatka), _ => !IsBusy);
 
-            AllFormatkiCommand = new RelayCommand(_ => MessageBox.Show("В разработке", "Autocad Tools"), _ => false);
-            SelectFormatkiCommand = new RelayCommand(_ => MessageBox.Show("В разработке", "Autocad Tools"), _ => false);
+            SelectFormatkiCommand = new RelayCommand(_ => _drawingInteraction(ExecuteSelectFormatki), _ => !IsBusy && Items.Any());
+            InsertIndexCommand = new RelayCommand(_ => _drawingInteraction(ExecuteInsertIndex), _ => !IsBusy && Items.Any(i => i.IsSelected));
+            BrowseOutputCommand = new RelayCommand(_ =>
+            {
+                string folder = UI.FolderPicker.Choose(OutputDirectory);
+                if (folder != null) OutputDirectory = folder;
+            }, _ => !IsBusy);
 
             LoadData();
         }
 
         #region Загрузка
+
+        private void ExecuteInsertIndex()
+        {
+            var doc = AcadCoreApp.DocumentManager.MdiActiveDocument;
+            if (doc == null) return;
+            var selected = Items.Where(i => i.IsSelected).ToArray();
+            if (selected.Length == 0) return;
+            try
+            {
+                using (doc.LockDocument())
+                    if (!doc.Database.TileMode) LayoutManager.Current.CurrentLayout = "Model";
+                var point = doc.Editor.GetPoint("\nУкажите точку вставки ведомости в модели: ");
+                if (point.Status != PromptStatus.OK) return;
+                using (doc.LockDocument()) PlotIndexService.Insert(doc.Database, selected,
+                    point.Value.TransformBy(doc.Editor.CurrentUserCoordinateSystem), _service.PlotScale);
+                doc.Editor.Regen();
+                StatusMessage = $"В модель вставлена таблица: {selected.Length} листов.";
+            }
+            catch (SystemException ex)
+            {
+                Infrastructure.PluginLog.Error("Insert drawing index", ex);
+                StatusMessage = "Не удалось вставить таблицу: " + ex.Message;
+                doc.Editor.WriteMessage("\n[Autocad Tools] " + StatusMessage);
+            }
+        }
 
         private void LoadData()
         {
@@ -181,10 +267,12 @@ namespace AutocadTools.ViewModels
                 StatusMessage = $"Загрузка блоков... (блок='{_service.BlockName}', слой='{_service.LayerName}')";
 
                 var blocks = _service.GetFormatBlocks();
-
-                Items.Clear();
+                var selection = UserPreferences.Read(SelectionSection);
                 foreach (var block in blocks)
-                    Items.Add(block);
+                    if (selection.TryGetValue(block.BlockId.Handle.ToString(), out var flag) && flag.Type == Newtonsoft.Json.Linq.JTokenType.Boolean)
+                        block.IsSelected = flag.ToObject<bool>();
+
+                Items = new ObservableCollection<BatchPlotItem>(blocks);
 
                 if (blocks.Count > 0)
                 {
@@ -201,7 +289,7 @@ namespace AutocadTools.ViewModels
             catch (SystemException ex)
             {
                 StatusMessage = $"Ошибка загрузки: {ex.Message}";
-                MessageBox.Show($"Не удалось загрузить блоки:\n\n{ex.Message}", "Autocad Tools - Ошибка",
+                MessageBox.Show($"Не удалось загрузить блоки:\n\n{ex.Message}", "Autocad Tools — ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
@@ -214,9 +302,24 @@ namespace AutocadTools.ViewModels
         {
             if (e.PropertyName == nameof(BatchPlotItem.IsSelected))
             {
+                if (!_suppressIsAllSelectedRecalc && sender is BatchPlotItem changed && !changed.BlockId.IsNull)
+                {
+                    var selection = UserPreferences.Read(SelectionSection);
+                    selection[changed.BlockId.Handle.ToString()] = changed.IsSelected;
+                    UserPreferences.Write(SelectionSection, selection);
+                }
                 RecalcIsAllSelected();
                 CommandManager.InvalidateRequerySuggested();
             }
+        }
+
+        private string SelectionSection => "BatchPlotSelection:" + (AcadCoreApp.DocumentManager.MdiActiveDocument?.Name ?? "");
+
+        private void SaveSelection()
+        {
+            var selection = UserPreferences.Read(SelectionSection);
+            foreach (var item in Items.Where(i => !i.BlockId.IsNull)) selection[item.BlockId.Handle.ToString()] = item.IsSelected;
+            UserPreferences.Write(SelectionSection, selection);
         }
 
         private void RecalcIsAllSelected()
@@ -253,6 +356,27 @@ namespace AutocadTools.ViewModels
         #endregion
 
         #region Указать форматку
+
+        private void ExecuteSelectFormatki()
+        {
+            var doc = AcadCoreApp.DocumentManager.MdiActiveDocument;
+            if (doc == null) return;
+            var selection = doc.Editor.GetSelection(new PromptSelectionOptions { MessageForAdding = "\nВыберите форматки для печати: " },
+                new SelectionFilter(new[] { new TypedValue((int)DxfCode.Start, "INSERT") }));
+            if (selection.Status != PromptStatus.OK) return;
+            using (selection.Value)
+            {
+                var ids = new HashSet<ObjectId>(selection.Value.GetObjectIds());
+                foreach (var item in Items) item.IsSelected = ids.Contains(item.BlockId);
+            }
+            RecalcIsAllSelected();
+        }
+
+        protected override void OnDisposing()
+        {
+            foreach (var item in Items) item.PropertyChanged -= OnItemPropertyChanged;
+            RequestClose = null;
+        }
 
         private void ExecuteSetFormatka()
         {
@@ -291,6 +415,7 @@ namespace AutocadTools.ViewModels
 
                     _service.LayerName = newLayer;
                     _service.BlockName = newBlockName;
+                    UserPreferences.Write("BatchPlotFilter", new Newtonsoft.Json.Linq.JObject { ["Block"] = newBlockName, ["Layer"] = newLayer });
                 }
 
                 StatusMessage = $"Фильтр изменён: блок='{_service.BlockName}', слой='{_service.LayerName}'";
@@ -299,7 +424,7 @@ namespace AutocadTools.ViewModels
             catch (SystemException ex)
             {
                 StatusMessage = "Ошибка выбора форматки";
-                MessageBox.Show($"Ошибка выбора форматки:\n\n{ex.Message}", "Autocad Tools - Ошибка",
+                MessageBox.Show($"Ошибка выбора форматки:\n\n{ex.Message}", "Autocad Tools — ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -333,7 +458,7 @@ namespace AutocadTools.ViewModels
             catch (SystemException ex)
             {
                 StatusMessage = "Ошибка обновления атрибутов";
-                MessageBox.Show($"Ошибка обновления атрибутов:\n\n{ex.Message}", "Autocad Tools - Ошибка",
+                MessageBox.Show($"Ошибка обновления атрибутов:\n\n{ex.Message}", "Autocad Tools — ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
@@ -376,7 +501,7 @@ namespace AutocadTools.ViewModels
                           string.Join("\n", invalid.Select(i => $"- Лист {i.SheetNumber}: {i.Status}")) +
                           "\n\nЗапустить публикацию всё равно?";
 
-                var result = MessageBox.Show(msg, "Autocad Tools - Предупреждение",
+                var result = MessageBox.Show(msg, "Autocad Tools — предупреждение",
                     MessageBoxButton.YesNo, MessageBoxImage.Warning);
 
                 if (result == MessageBoxResult.No)
@@ -406,6 +531,12 @@ namespace AutocadTools.ViewModels
                 string outputDirectory = Path.GetDirectoryName(drawingPath);
                 if (string.IsNullOrEmpty(outputDirectory) || !File.Exists(drawingPath))
                     throw new InvalidOperationException("Сохраните DWG перед публикацией.");
+                if (!string.IsNullOrWhiteSpace(OutputDirectory))
+                {
+                    if (!Path.IsPathFullyQualified(OutputDirectory)) throw new InvalidOperationException("Укажите полный путь к папке PDF.");
+                    outputDirectory = OutputDirectory;
+                }
+                Directory.CreateDirectory(outputDirectory);
                 string drawingName = Path.GetFileNameWithoutExtension(drawingPath);
                 string outputPath = Path.Combine(outputDirectory, drawingName + (separateSheets ? "_Sheets" : "_Binder.pdf"));
                 string jobDirectory = Path.Combine(PluginPaths.UserDataDirectory, "Publish", Guid.NewGuid().ToString("N"));
@@ -419,7 +550,7 @@ namespace AutocadTools.ViewModels
                 {
                     StatusMessage = "Ошибка подготовки DSD";
                     MessageBox.Show("Не удалось создать настройки печати (проверь доступность пути DSD и наличие выбранных блоков).",
-                        "Autocad Tools - Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                        "Autocad Tools — ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -428,13 +559,14 @@ namespace AutocadTools.ViewModels
                 // 2) BACKGROUNDPLOT строго по ТЗ: 3 если "в фоне", иначе 0
 
                 // 3) Запускаем -PUBLISH
-                bool ok = DsdPublishService.Publish(dsdPath, pdfPath, outputPath, selected, separateSheets, PlotInBackground);
+                bool ok = DsdPublishService.Publish(dsdPath, pdfPath, outputPath, selected, separateSheets, PlotInBackground,
+                    SettingsService.Settings.OpenFolderAfterPlot, SettingsService.Settings.OpenFileAfterPlot, SettingsService.Settings.KeepExistingPdfFiles);
 
                 if (!ok)
                 {
                     StatusMessage = "Не удалось запустить публикацию DSD";
                     MessageBox.Show("Команда публикации не стартовала.",
-                        "Autocad Tools - Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                        "Autocad Tools — ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -447,7 +579,7 @@ namespace AutocadTools.ViewModels
             catch (SystemException ex)
             {
                 StatusMessage = "Ошибка запуска публикации";
-                MessageBox.Show($"Критическая ошибка:\n\n{ex.Message}", "Autocad Tools - Ошибка",
+                MessageBox.Show($"Критическая ошибка:\n\n{ex.Message}", "Autocad Tools — ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
@@ -477,6 +609,7 @@ namespace AutocadTools.ViewModels
             }
 
             StatusMessage = $"Выбрано: {Items.Count} элементов";
+            SaveSelection();
         }
 
         private void DeselectAll()
@@ -496,6 +629,7 @@ namespace AutocadTools.ViewModels
             }
 
             StatusMessage = "Выбор снят";
+            SaveSelection();
         }
 
         #endregion

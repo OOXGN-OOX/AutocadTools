@@ -1,6 +1,5 @@
-// Copyright (c) 2026 OOXGN (GitHub: OOXGN-OOX). All rights reserved.
-// SPDX-License-Identifier: LicenseRef-AutocadTools-Proprietary-NC-Attribution
-// See LICENSE in the repository root.
+// Copyright (c) 2026 OOXGN.
+// SPDX-License-Identifier: AGPL-3.0-only
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -17,7 +16,8 @@ namespace AutocadTools.Services
         private static readonly HashSet<Document> Documents = new HashSet<Document>();
         private static Pane _pane;
         private static bool _started, _dirty, _paneUnavailable;
-        private static DateTime _retryPaneAt;
+        private static DateTime _retryPaneAt, _nextRefreshUtc;
+        private static string _displayedText;
         private static string _previousMacro, _ownedMacro;
 
         public static double Calculate(Transaction transaction, IEnumerable<ObjectId> ids)
@@ -25,15 +25,11 @@ namespace AutocadTools.Services
             double total = 0;
             foreach (var id in ids)
             {
-                if (id.IsNull || id.IsErased) continue;
+                if (id.IsNull || !id.IsValid || id.IsErased) continue;
                 try
                 {
-                    var entity = transaction.GetObject(id, OpenMode.ForRead, false);
-                    if (!(entity is Line || entity is Polyline || entity is Polyline2d ||
-                          entity is Polyline3d || entity is Arc || entity is Spline)) continue;
-                    var curve = (Curve)entity;
-                    double length = curve.GetDistanceAtParameter(curve.EndParam) - curve.GetDistanceAtParameter(curve.StartParam);
-                    if (!double.IsNaN(length) && !double.IsInfinity(length) && length > 0) total += length;
+                    if (transaction.GetObject(id, OpenMode.ForRead, false) is Entity entity &&
+                        CurveGeometry.TryGetLength(entity, includeCircles: false, out var length)) total += length;
                 }
                 catch (Autodesk.AutoCAD.Runtime.Exception) { /* An erased or unsupported object must not break selection. */ }
             }
@@ -44,12 +40,16 @@ namespace AutocadTools.Services
         {
             if (_started) return;
             _started = true;
-            foreach (Document doc in AcadApp.DocumentManager) Attach(doc);
-            AcadApp.DocumentManager.DocumentCreated += OnCreated;
-            AcadApp.DocumentManager.DocumentActivated += OnActivated;
-            AcadApp.DocumentManager.DocumentToBeDestroyed += OnClosing;
-            AcadApp.Idle += OnIdle;
-            _dirty = true;
+            try
+            {
+                foreach (Document doc in AcadApp.DocumentManager) Attach(doc);
+                AcadApp.DocumentManager.DocumentCreated += OnCreated;
+                AcadApp.DocumentManager.DocumentActivated += OnActivated;
+                AcadApp.DocumentManager.DocumentToBeDestroyed += OnClosing;
+                AcadApp.Idle += OnIdle;
+                _dirty = true;
+            }
+            catch { Stop(); throw; }
         }
 
         private static void Attach(Document doc)
@@ -58,6 +58,7 @@ namespace AutocadTools.Services
             doc.ImpliedSelectionChanged += OnChanged;
             doc.CommandEnded += OnChanged;
             doc.CommandCancelled += OnChanged;
+            doc.CommandFailed += OnChanged;
         }
         private static void Detach(Document doc)
         {
@@ -65,6 +66,7 @@ namespace AutocadTools.Services
             doc.ImpliedSelectionChanged -= OnChanged;
             doc.CommandEnded -= OnChanged;
             doc.CommandCancelled -= OnChanged;
+            doc.CommandFailed -= OnChanged;
         }
         private static void OnCreated(object sender, DocumentCollectionEventArgs e) { Attach(e.Document); _dirty = true; }
         private static void OnActivated(object sender, DocumentCollectionEventArgs e) { _dirty = true; }
@@ -73,10 +75,22 @@ namespace AutocadTools.Services
 
         private static void OnIdle(object sender, EventArgs e)
         {
+            if (DateTime.UtcNow < _nextRefreshUtc) return;
+            try { Refresh(); }
+            catch (System.Exception ex)
+            {
+                _nextRefreshUtc = DateTime.UtcNow.AddSeconds(30);
+                Infrastructure.PluginLog.Error("Selection indicator", ex);
+            }
+        }
+
+        private static void Refresh()
+        {
             if (!_dirty && !(_paneUnavailable && DateTime.UtcNow >= _retryPaneAt)) return;
             var doc = AcadApp.DocumentManager.MdiActiveDocument;
             if (doc != null && !string.IsNullOrEmpty(doc.CommandInProgress)) return;
             _dirty = false;
+            _nextRefreshUtc = DateTime.UtcNow.AddMilliseconds(100);
             double total = 0;
             try
             {
@@ -85,6 +99,7 @@ namespace AutocadTools.Services
                     var selection = doc.Editor.SelectImplied();
                     if (selection.Status == PromptStatus.OK)
                     {
+                        using (selection.Value)
                         using (doc.LockDocument())
                         using (var transaction = doc.Database.TransactionManager.StartOpenCloseTransaction())
                             total = Calculate(transaction, selection.Value.GetObjectIds());
@@ -92,7 +107,7 @@ namespace AutocadTools.Services
                 }
                 Display(total);
             }
-            catch (System.Exception) { /* Selection notifications must never interrupt AutoCAD. */ }
+            catch (System.Exception ex) { Infrastructure.PluginLog.Error("Calculate selected length", ex); }
         }
 
         private static void Display(double total)
@@ -106,6 +121,7 @@ namespace AutocadTools.Services
                     // Native Model/Paper switch is the first built-in pane.
                     AcadApp.StatusBar.Panes.Insert(0, _pane);
                     _paneUnavailable = false;
+                    _displayedText = null;
                     if (_previousMacro != null && Convert.ToString(AcadApp.GetSystemVariable("MODEMACRO")) == _ownedMacro)
                         AcadApp.SetSystemVariable("MODEMACRO", _previousMacro);
                     _previousMacro = _ownedMacro = null;
@@ -114,6 +130,8 @@ namespace AutocadTools.Services
             }
             if (_pane != null)
             {
+                if (_displayedText == text) return;
+                _displayedText = text;
                 _pane.Text = text;
                 _pane.Visible = total > 0;
                 AcadApp.StatusBar.Update();
@@ -148,8 +166,10 @@ namespace AutocadTools.Services
             }
             catch (System.Exception) { /* Native UI may already be disposed during shutdown. */ }
             _pane = null;
+            _displayedText = null;
             _previousMacro = _ownedMacro = null;
             _paneUnavailable = false;
+            _nextRefreshUtc = DateTime.MinValue;
         }
     }
 }

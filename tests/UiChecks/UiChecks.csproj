@@ -32,4 +32,12 @@
     <Compile Include="..\..\Models\SelectSimilarOptions.cs" Link="SelectSimilarOptions.cs"/>
     <Compile Include="..\..\Models\StripTextOptions.cs" Link="StripTextOptions.cs"/>
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../Infrastructure/AtomicFile.cs" Link="AtomicFile.cs"/>
+    <Compile Include="../../Infrastructure/AppDataPaths.cs" Link="AppDataPaths.cs"/>
+    <Compile Include="../../Infrastructure/PluginLog.cs" Link="PluginLog.cs"/>
+    <Compile Include="../../UI/WindowPreferences.cs" Link="WindowPreferences.cs"/>
+    <Compile Include="../../Services/UserPreferences.cs" Link="UserPreferences.cs"/>
+    <Compile Include="../../Models/AutoNumSettings.cs" Link="AutoNumSettings.cs"/>
+  </ItemGroup>
 </Project>
