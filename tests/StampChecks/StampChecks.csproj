@@ -20,6 +20,7 @@
     <Compile Include="..\..\Services\IStampTypographyService.cs" Link="IStampTypographyService.cs"/>
     <Compile Include="..\..\Services\StampSignatureTracking.cs" Link="StampSignatureTracking.cs"/>
     <Compile Include="..\..\Services\FormatInsertService.cs" Link="FormatInsertService.cs"/>
+    <Compile Include="../../Services/StampSchema.cs" Link="StampSchema.cs"/>
     <Compile Include="..\..\Services\IAutoCADService.cs" Link="IAutoCADService.cs"/>
     <Compile Include="..\..\Services\IStampSignatureService.cs" Link="IStampSignatureService.cs"/>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4"/>

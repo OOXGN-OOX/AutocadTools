@@ -1,10 +1,7 @@
-// SPDX-License-Identifier: LicenseRef-AutocadTools-Proprietary-NC-Attribution
-// See LICENSE in the repository root.
-// ============================================================================
+// SPDX-License-Identifier: AGPL-3.0-only
 // OOXGN - Copyright (c) 2026. All rights reserved.
-// Author: OOXGN | Project: AutocadTools
-// ============================================================================
-
+// Author: OOXGN | Project: BotPlusAutocadTool
+// Derived from Davud77/BotPlusAutocadTool (51e3e82). See THIRD-PARTY-NOTICES.md.
 using System;
 using System.Collections.Generic;
 using Autodesk.AutoCAD.DatabaseServices;
@@ -46,12 +43,20 @@ namespace AutocadTools.Commands
                 bool? result = AcadApp.ShowModalWindow(window);
                 if (vm.DialogResult != true) return;
 
+                Autodesk.AutoCAD.Geometry.Point3d? basePoint = null;
+                if (vm.Options.CreateBlock && vm.Options.PickBasePoint)
+                {
+                    var picked = ed.GetPoint("\nУкажите базовую точку будущего блока: ");
+                    if (picked.Status != PromptStatus.OK) return;
+                    basePoint = picked.Value.TransformBy(ed.CurrentUserCoordinateSystem);
+                }
+
                 // 3. Выполнение
                 using (doc.LockDocument())
                 {
                     using (Transaction tr = doc.Database.TransactionManager.StartTransaction())
                     {
-                        var service = new PlanPrepService(vm.Options, doc.Database, tr);
+                        var service = new PlanPrepService(vm.Options, doc.Database, tr, basePoint);
 
                         List<ObjectId> ids = new List<ObjectId>();
                         foreach (SelectedObject so in psr.Value)

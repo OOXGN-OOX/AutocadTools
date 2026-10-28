@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0-windows;net10.0-windows</TargetFrameworks>
+    <OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.104.2" />
+    <Compile Include="..\..\Infrastructure\AtomicFile.cs" Link="AtomicFile.cs" />
+    <Compile Include="..\..\ExcelRuntime\ExcelWorkbookService.cs" Link="ExcelWorkbookService.cs" />
+    <Compile Include="..\..\Services\CalculatorEngine.cs" Link="CalculatorEngine.cs" />
+    <Compile Include="..\..\Services\FileEditSession.cs" Link="FileEditSession.cs" />
+    <Compile Include="..\..\Services\PublishFileReadiness.cs" Link="PublishFileReadiness.cs" />
+    <Compile Include="..\..\Services\PdfOutputPaths.cs" Link="PdfOutputPaths.cs" />
+    <Compile Include="..\..\Services\PlotFrameOrdering.cs" Link="PlotFrameOrdering.cs" />
+    <Compile Include="..\..\Services\MTextFormatting.cs" Link="MTextFormatting.cs" />
+    <Compile Include="..\..\Models\StripTextOptions.cs" Link="StripTextOptions.cs" />
+    <Compile Include="..\..\Models\AutoNumSettings.cs" Link="AutoNumSettings.cs" />
+    <Compile Include="..\..\ViewModels\BaseViewModel.cs" Link="BaseViewModel.cs" />
+  </ItemGroup>
+</Project>

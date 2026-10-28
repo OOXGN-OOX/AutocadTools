@@ -1,11 +1,10 @@
-// Copyright (c) 2026 OOXGN (GitHub: OOXGN-OOX). All rights reserved.
-// SPDX-License-Identifier: LicenseRef-AutocadTools-Proprietary-NC-Attribution
-// See LICENSE in the repository root.
+// SPDX-License-Identifier: AGPL-3.0-only
+// Derived from Davud77/BotPlusAutocadTool (51e3e82). See THIRD-PARTY-NOTICES.md.
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 
-using ClosedXML.Excel;
+
 
 using System;
 using System.Collections.Generic;
@@ -18,89 +17,56 @@ namespace AutocadTools.Services
 {
     public sealed class TableExcelService
     {
-        private static readonly Dictionary<Document, PendingImport> _pending = new();
+        private static readonly Dictionary<(Document Document, ObjectId TableId), PendingImport> _pending = new();
         private static bool _idleHooked;
         private static bool _docDestroyHooked;
 
         public void ExportOpenAndAutoImport(Document doc, ObjectId tableId)
         {
             if (doc == null) return;
-            var ed = doc.Editor;
-
+            if (_pending.ContainsKey((doc, tableId)))
+                throw new InvalidOperationException("Сначала завершите редактирование уже открытой таблицы этой таблицы.");
+            TableWorkbookData snapshot;
             using (doc.LockDocument())
-            using (var tr = doc.TransactionManager.StartTransaction())
+            using (var transaction = doc.TransactionManager.StartOpenCloseTransaction())
             {
-                var table = tr.GetObject(tableId, OpenMode.ForRead, false) as Table;
-                if (table == null)
-                    throw new InvalidOperationException("Выбранный объект не является Table.");
-
-                var session = ExportTableToXlsx(doc, table);
-
-                tr.Commit();
-
-                StartPending(doc, session);
-
-                ed.WriteMessage($"\n[Autocad Tools TableExcel] Excel-файл создан: {session.FilePath}\n");
-                ed.WriteMessage("\n[Autocad Tools TableExcel] Откройте/отредактируйте файл в Excel, затем ЗАКРОЙТЕ Excel — импорт выполнится автоматически.\n");
-
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = session.FilePath,
-                    UseShellExecute = true
-                });
+                if (transaction.GetObject(tableId, OpenMode.ForRead, false) is not Table table)
+                    throw new InvalidOperationException("Выбранный объект не является таблицей.");
+                snapshot = ExportSnapshot(table);
             }
+            var directory = Path.Combine(Path.GetTempPath(), "AutocadTools", "TableExcel");
+            Directory.CreateDirectory(directory);
+            var file = Path.Combine(directory, MakeSafeFileName(Path.GetFileNameWithoutExtension(doc.Name)) + "_" + Guid.NewGuid().ToString("N") + ".xlsx");
+            ExcelWorkbookService.Save(file, snapshot);
+            // Do not register a pending session if no spreadsheet editor can be launched.
+            Process.Start(new ProcessStartInfo(file) { UseShellExecute = true })?.Dispose();
+            var info = new FileInfo(file);
+            StartPending(doc, new PendingImport
+            {
+                TableId = tableId,
+                FilePath = file,
+                State = new FileEditSession(DateTime.UtcNow, info.LastWriteTimeUtc, info.Length)
+            });
+            doc.Editor.WriteMessage($"\n[Autocad Tools] Таблица открыта: {file}\nСохраните изменения и закройте файл. Импорт выполнится, когда этот чертёж активен и не выполняет команду.\n");
         }
 
-        // =========================================================================
-        // EXPORT
-        // =========================================================================
-        private static PendingImport ExportTableToXlsx(Document doc, Table table)
+        internal static TableWorkbookData ExportSnapshot(Table table)
         {
-            var tempDir = Path.Combine(Path.GetTempPath(), "Autocad Tools", "TableExcel");
-            Directory.CreateDirectory(tempDir);
-
-            var safeName = MakeSafeFileName(Path.GetFileNameWithoutExtension(doc.Name));
-            var stamp = DateTime.Now.ToString("yy.MM.dd_HH.mm.ss");
-            var filePath = Path.Combine(tempDir, $"{safeName}_table_{table.Handle}_{stamp}.xlsx");
-
-            int rows = table.Rows.Count;
-            int cols = table.Columns.Count;
-
-            using (var wb = new XLWorkbook())
-            {
-                var ws = wb.Worksheets.Add("Table");
-
-                // meta: чтобы при пустых значениях RangeUsed() не дал 0x0
-                var meta = wb.Worksheets.Add("_meta");
-                meta.Cell(1, 1).SetValue(rows);
-                meta.Cell(1, 2).SetValue(cols);
-                meta.Hide();
-
-                for (int r = 0; r < rows; r++)
+            int rows = table.Rows.Count, columns = table.Columns.Count;
+            var values = new string[rows, columns];
+            var merges = new HashSet<ExcelMerge>();
+            for (int row = 0; row < rows; row++)
+                for (int column = 0; column < columns; column++)
                 {
-                    for (int c = 0; c < cols; c++)
+                    values[row, column] = GetAcadCellText(table, row, column);
+                    if (table.Cells[row, column].IsMerged.GetValueOrDefault(false))
                     {
-                        string text = GetAcadCellText(table, r, c);
-                        ws.Cell(r + 1, c + 1).SetValue(text ?? "");
+                        var range = table.Cells[row, column].GetMergeRange();
+                        merges.Add(new ExcelMerge(range.TopRow, range.LeftColumn, range.BottomRow, range.RightColumn));
                     }
                 }
-
-                // Экспорт объединённых ячеек из AutoCAD в Excel
-                ApplyAcadMergesToExcel(table, ws, rows, cols);
-
-                ws.SheetView.FreezeRows(1);
-                wb.SaveAs(filePath);
-            }
-
-            return new PendingImport
-            {
-                TableId = table.ObjectId,
-                FilePath = filePath,
-                CreatedUtc = DateTime.UtcNow,
-                SeenLocked = false
-            };
+            return new TableWorkbookData(rows, columns, values, new List<ExcelMerge>(merges));
         }
-
         private static string GetAcadCellText(Table table, int row, int col)
         {
             try
@@ -118,64 +84,9 @@ namespace AutocadTools.Services
             }
         }
 
-        private static void ApplyAcadMergesToExcel(Table table, IXLWorksheet ws, int rows, int cols)
-        {
-            var visited = new bool[rows, cols];
-
-            for (int r = 0; r < rows; r++)
-            {
-                for (int c = 0; c < cols; c++)
-                {
-                    bool isMerged;
-                    try
-                    {
-                        // IsMerged у TableCell — bool? (nullable)
-                        isMerged = table.Cells[r, c].IsMerged.GetValueOrDefault(false);
-                    }
-                    catch
-                    {
-                        isMerged = false;
-                    }
-
-                    if (!isMerged) continue;
-                    if (visited[r, c]) continue;
-
-                    CellRange cr;
-                    try
-                    {
-                        // Новый API: Cells[row,col].GetMergeRange()
-                        cr = table.Cells[r, c].GetMergeRange();
-                    }
-                    catch
-                    {
-                        continue;
-                    }
-
-                    int r1 = cr.TopRow;
-                    int r2 = cr.BottomRow;
-                    int c1 = cr.LeftColumn;
-                    int c2 = cr.RightColumn;
-
-                    // защитимся от мусорных диапазонов
-                    if (r1 < 0 || c1 < 0 || r2 < 0 || c2 < 0) continue;
-                    if (r2 >= rows || c2 >= cols) continue;
-                    if (r1 == r2 && c1 == c2) continue;
-
-                    for (int rr = r1; rr <= r2; rr++)
-                        for (int cc = c1; cc <= c2; cc++)
-                            visited[rr, cc] = true;
-
-                    ws.Range(r1 + 1, c1 + 1, r2 + 1, c2 + 1).Merge();
-                }
-            }
-        }
-
-        // =========================================================================
-        // PENDING / IDLE
-        // =========================================================================
         private static void StartPending(Document doc, PendingImport session)
         {
-            _pending[doc] = session;
+            _pending[(doc, session.TableId)] = session;
 
             if (!_idleHooked)
             {
@@ -190,67 +101,80 @@ namespace AutocadTools.Services
             }
         }
 
+        private static DateTime _nextPollUtc;
+
         private static void OnIdle(object sender, EventArgs e)
         {
-            var docs = new List<Document>(_pending.Keys);
-
-            foreach (var doc in docs)
+            var now = DateTime.UtcNow;
+            if (now < _nextPollUtc) return;
+            _nextPollUtc = now.AddSeconds(1);
+            foreach (var key in new List<(Document Document, ObjectId TableId)>(_pending.Keys))
             {
-                if (!_pending.TryGetValue(doc, out var session))
-                    continue;
-
-                bool locked = IsFileLocked(session.FilePath);
-
-                // Ключевой UX-фикс:
-                // ждём, пока Excel реально откроет файл (появится lock), иначе импорт может отработать сразу же.
-                if (!session.SeenLocked)
-                {
-                    if (locked)
-                        session.SeenLocked = true;
-
-                    continue;
-                }
-
-                // Excel уже открывал файл -> ждём его закрытия (lock снят)
-                if (locked)
-                    continue;
-
+                var doc = key.Document;
+                if (!_pending.TryGetValue(key, out var session)) continue;
                 try
                 {
-                    ImportXlsxToTable(doc, session);
+                    if (doc != AcadCoreApp.DocumentManager.MdiActiveDocument || !string.IsNullOrEmpty(doc.CommandInProgress)) continue;
+                    if (!File.Exists(session.FilePath)) throw new FileNotFoundException("Файл таблицы удалён или перемещён.", session.FilePath);
+                    if (now - session.State.CreatedUtc > TimeSpan.FromHours(24))
+                        throw new TimeoutException("Сеанс редактирования таблицы истёк. XLSX сохранён: " + session.FilePath);
+                    var info = new FileInfo(session.FilePath);
+                    if (!session.State.IsReady(now, IsFileLocked(session.FilePath), info.LastWriteTimeUtc, info.Length)) continue;
+                    var snapshot = ExcelWorkbookService.Read(session.FilePath);
+                    ImportWorkbook(doc, session.TableId, snapshot);
+                    RemovePending(key);
                 }
                 catch (System.Exception ex)
                 {
-                    doc.Editor.WriteMessage($"\n[Autocad Tools TableExcel] Ошибка импорта: {ex}\n");
+                    Infrastructure.PluginLog.Error("Import table from " + session.FilePath, ex);
+                    RemovePending(key);
+                    try { doc.Editor.WriteMessage("\n[Autocad Tools] Таблица не импортирована: " + ex.Message + "\nФайл сохранён: " + session.FilePath + "\n"); }
+                    catch { }
                 }
-                finally
-                {
-                    _pending.Remove(doc);
-                }
-            }
-
-            if (_pending.Count == 0 && _idleHooked)
-            {
-                AcadCoreApp.Idle -= OnIdle;
-                _idleHooked = false;
             }
         }
 
-        // =========================================================================
-        // IMPORT
-        // =========================================================================
-        private static void ImportXlsxToTable(Document doc, PendingImport session)
+        internal static void ImportWorkbook(Document doc, ObjectId tableId, TableWorkbookData snapshot)
         {
             var ed = doc.Editor;
 
             using (doc.LockDocument())
             using (var tr = doc.TransactionManager.StartTransaction())
             {
-                var table = tr.GetObject(session.TableId, OpenMode.ForWrite, false) as Table;
+                var table = tr.GetObject(tableId, OpenMode.ForWrite, false) as Table;
                 if (table == null)
                     throw new InvalidOperationException("Таблица не найдена (возможно удалена/заменена).");
 
-                (int usedRows, int usedCols, string[,] data, List<ExcelMerge> merges) = ReadXlsx(session.FilePath);
+                ApplyWorkbookData(table, snapshot);
+                tr.Commit();
+                ed.WriteMessage($"\n[Autocad Tools] Таблица обновлена: {snapshot.Rows} строк, {snapshot.Columns} столбцов.\n");
+            }
+        }
+
+        internal static ObjectId CreateTable(Document doc, TableWorkbookData snapshot, Autodesk.AutoCAD.Geometry.Point3d position)
+        {
+            using (doc.LockDocument())
+            using (var tr = doc.Database.TransactionManager.StartTransaction())
+            {
+                var space = (BlockTableRecord)tr.GetObject(doc.Database.CurrentSpaceId, OpenMode.ForWrite);
+                var table = new Table { TableStyle = doc.Database.Tablestyle, Position = position };
+                table.SetSize(Math.Max(1, snapshot.Rows), Math.Max(1, snapshot.Columns));
+                table.SetRowHeight(8); table.SetColumnWidth(35);
+                var id = space.AppendEntity(table); tr.AddNewlyCreatedDBObject(table, true);
+                ApplyWorkbookData(table, snapshot);
+                tr.Commit();
+                return id;
+            }
+        }
+
+        private static void ApplyWorkbookData(Table table, TableWorkbookData snapshot)
+        {
+                int usedRows = snapshot.Rows, usedCols = snapshot.Columns;
+                var data = snapshot.Values;
+                var merges = snapshot.Merges;
+                table.SuppressRegenerateTable(true);
+                try
+                {
 
                 int oldRows = table.Rows.Count;
                 int oldCols = table.Columns.Count;
@@ -277,7 +201,8 @@ namespace AutocadTools.Services
                     ApplyFormattingForNewColumns(table, firstNewCol: oldCols, lastNewCol: targetCols - 1, templateCol: Math.Max(oldCols - 1, 0));
                 }
 
-                // пишем значения только в область Excel
+                UnmergeImportedArea(table, usedRows, usedCols);
+                // Write only the imported region; preserve cells outside it.
                 int rMaxWrite = Math.Min(usedRows, table.Rows.Count);
                 int cMaxWrite = Math.Min(usedCols, table.Columns.Count);
 
@@ -296,70 +221,9 @@ namespace AutocadTools.Services
                 // перенос объединений Excel -> AutoCAD (только добавление merge)
                 int mergesApplied = ApplyExcelMergesToAcad(table, merges);
 
+                }
+                finally { table.SuppressRegenerateTable(false); }
                 table.GenerateLayout();
-                tr.Commit();
-
-                ed.WriteMessage($"\n[Autocad Tools TableExcel] Импорт выполнен. Rows={usedRows}, Cols={usedCols}, MergesApplied={mergesApplied}\n");
-            }
-        }
-
-        private static (int rows, int cols, string[,] data, List<ExcelMerge> merges) ReadXlsx(string filePath)
-        {
-            using (var wb = new XLWorkbook(filePath))
-            {
-                var ws = wb.Worksheet("Table");
-
-                // meta (если есть)
-                int metaRows = 0, metaCols = 0;
-                try
-                {
-                    var meta = wb.Worksheet("_meta");
-                    metaRows = meta.Cell(1, 1).GetValue<int>();
-                    metaCols = meta.Cell(1, 2).GetValue<int>();
-                }
-                catch { }
-
-                // used range (может быть null)
-                var used = ws.RangeUsed();
-                int usedRows = used?.RowCount() ?? 0;
-                int usedCols = used?.ColumnCount() ?? 0;
-
-                // merges
-                var merges = new List<ExcelMerge>();
-                int maxMergeRow = 0;
-                int maxMergeCol = 0;
-
-                foreach (var mr in ws.MergedRanges)
-                {
-                    int r1 = mr.RangeAddress.FirstAddress.RowNumber - 1;
-                    int c1 = mr.RangeAddress.FirstAddress.ColumnNumber - 1;
-                    int r2 = mr.RangeAddress.LastAddress.RowNumber - 1;
-                    int c2 = mr.RangeAddress.LastAddress.ColumnNumber - 1;
-
-                    if (r1 < 0 || c1 < 0 || r2 < 0 || c2 < 0) continue;
-                    if (r2 < r1 || c2 < c1) continue;
-                    if (r1 == r2 && c1 == c2) continue;
-
-                    merges.Add(new ExcelMerge(r1, c1, r2, c2));
-
-                    if (r2 + 1 > maxMergeRow) maxMergeRow = r2 + 1;
-                    if (c2 + 1 > maxMergeCol) maxMergeCol = c2 + 1;
-                }
-
-                int rows = Math.Max(Math.Max(metaRows, usedRows), maxMergeRow);
-                int cols = Math.Max(Math.Max(metaCols, usedCols), maxMergeCol);
-
-                if (rows <= 0 || cols <= 0)
-                    return (0, 0, new string[0, 0], merges);
-
-                var data = new string[rows, cols];
-
-                for (int r = 1; r <= rows; r++)
-                    for (int c = 1; c <= cols; c++)
-                        data[r - 1, c - 1] = ws.Cell(r, c).GetString();
-
-                return (rows, cols, data, merges);
-            }
         }
 
         private static int ApplyExcelMergesToAcad(Table table, List<ExcelMerge> merges)
@@ -398,7 +262,7 @@ namespace AutocadTools.Services
                         }
                     }
 
-                    // FIX: CellRange нельзя создавать через new(...), используем CellRange.Create(table, ...) [web:307]
+                    // FIX: CellRange нельзя создавать через new(...), используем CellRange.Create(table, ...)
                     var cr = CellRange.Create(table, m.TopRow, m.LeftCol, m.BottomRow, m.RightCol);
                     table.MergeCells(cr);
                     applied++;
@@ -512,17 +376,38 @@ namespace AutocadTools.Services
 
         private static void OnDocToBeDestroyed(object sender, DocumentCollectionEventArgs e)
         {
-            try
-            {
-                var doc = e?.Document;
-                if (doc == null) return;
-
-                if (_pending.ContainsKey(doc))
-                    _pending.Remove(doc);
-            }
-            catch { }
+            foreach (var key in new List<(Document Document, ObjectId TableId)>(_pending.Keys))
+                if (key.Document == e.Document) RemovePending(key);
         }
 
+        private static void RemovePending((Document Document, ObjectId TableId) key)
+        {
+            _pending.Remove(key);
+            if (_pending.Count == 0) Shutdown();
+        }
+
+        public static void Shutdown()
+        {
+            if (_idleHooked) AcadCoreApp.Idle -= OnIdle;
+            if (_docDestroyHooked) AcadCoreApp.DocumentManager.DocumentToBeDestroyed -= OnDocToBeDestroyed;
+            _idleHooked = _docDestroyHooked = false;
+            _pending.Clear();
+        }
+
+        private static void UnmergeImportedArea(Table table, int rows, int columns)
+        {
+            var ranges = new HashSet<ExcelMerge>();
+            for (int row = 0; row < Math.Min(rows, table.Rows.Count); row++)
+                for (int column = 0; column < Math.Min(columns, table.Columns.Count); column++)
+                {
+                    if (!table.Cells[row, column].IsMerged.GetValueOrDefault(false)) continue;
+                    var range = table.Cells[row, column].GetMergeRange();
+                    if (range.BottomRow < rows && range.RightColumn < columns)
+                        ranges.Add(new ExcelMerge(range.TopRow, range.LeftColumn, range.BottomRow, range.RightColumn));
+                }
+            foreach (var range in ranges)
+                table.UnmergeCells(CellRange.Create(table, range.TopRow, range.LeftCol, range.BottomRow, range.RightCol));
+        }
         private static string MakeSafeFileName(string name)
         {
             if (string.IsNullOrWhiteSpace(name)) return "drawing";
@@ -537,25 +422,7 @@ namespace AutocadTools.Services
         {
             public ObjectId TableId { get; set; }
             public string FilePath { get; set; }
-            public DateTime CreatedUtc { get; set; }
-
-            public bool SeenLocked { get; set; }
-        }
-
-        private readonly struct ExcelMerge
-        {
-            public readonly int TopRow;
-            public readonly int LeftCol;
-            public readonly int BottomRow;
-            public readonly int RightCol;
-
-            public ExcelMerge(int topRow, int leftCol, int bottomRow, int rightCol)
-            {
-                TopRow = topRow;
-                LeftCol = leftCol;
-                BottomRow = bottomRow;
-                RightCol = rightCol;
-            }
+            public FileEditSession State { get; set; }
         }
     }
 }

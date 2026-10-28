@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$CompilerPath,
     [string]$BundlePath,
     [string]$AutoCAD2025Path,
@@ -32,11 +32,14 @@ if (!$usePrebuiltBundle) {
 $BundlePath = (Resolve-Path -LiteralPath $BundlePath).Path
 foreach ($folder in @('2025-2026','2027')) {
     $windows = Join-Path $BundlePath "Contents\Windows\$folder"
-    foreach ($name in @('AutocadTools.dll','Newtonsoft.Json.dll','ClosedXML.dll','itext.kernel.dll','itext.bouncy-castle-adapter.dll','BouncyCastle.Cryptography.dll')) {
+    foreach ($name in @('AutocadTools.dll','Newtonsoft.Json.dll','itext.kernel.dll','itext.bouncy-castle-adapter.dll','BouncyCastle.Cryptography.dll','ExcelRuntime/AutocadTools.ExcelRuntime.dll','ExcelRuntime/ClosedXML.dll')) {
         if (!(Test-Path -LiteralPath (Join-Path $windows $name))) { throw "Incomplete bundle: $folder/$name" }
     }
     foreach ($name in @('accoremgd.dll','acdbmgd.dll','acmgd.dll','AdWindows.dll')) {
         if (Test-Path -LiteralPath (Join-Path $windows $name)) { throw "Autodesk assembly in bundle: $name" }
+    }
+    foreach ($asset in @('Assets/AdditionalFunctions/catalog.json','Assets/Plotters/AutocadTools PDF.pc3','Assets/Plotters/PMP Files/AutocadTools PDF.pmp')) {
+        if (!(Test-Path -LiteralPath (Join-Path $windows $asset))) { throw "Missing runtime asset: $folder/$asset" }
     }
     if (!(Test-Path -LiteralPath (Join-Path $windows 'Assets\WM_FORMAT.dwg'))) { throw "Format template missing in bundle: $folder" }
 }

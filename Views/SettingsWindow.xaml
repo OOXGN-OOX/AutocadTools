@@ -1,0 +1,76 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:ui="clr-namespace:AutocadTools.UI" x:Class="AutocadTools.Views.SettingsWindow" Title="Настройки Autocad Tools" Width="570" Height="650" MinWidth="390" MinHeight="300" MaxHeight="{Binding Source={x:Static SystemParameters.WorkArea}, Path=Height}" WindowStartupLocation="CenterOwner" ResizeMode="CanResize" FontFamily="Segoe UI" FontSize="13" Background="{DynamicResource WindowBackground}" Foreground="{DynamicResource TextPrimary}" Style="{DynamicResource ToolWindow}">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Styles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <DockPanel Background="{DynamicResource WindowBackground}">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="16,8,16,16">
+            <Button Content="По умолчанию" Click="ResetClick" Margin="0,0,12,0"/>
+            <Button Content="Сохранить" Click="SaveClick" IsDefault="True" Margin="0,0,8,0"/>
+            <Button Content="Отмена" IsCancel="True"/>
+        </StackPanel>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Name="DialogViewport">
+            <StackPanel Margin="16">
+                <GroupBox Header="Форматка">
+                    <StackPanel>
+                        <TextBlock Text="Масштаб вставки WM_FORMAT"/>
+                        <TextBox Text="{Binding FrameInsertionScale, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Margin="0,6,0,6"/>
+                        <TextBlock Text="1 — размер в миллиметрах; 100 — рамка для модели в масштабе 1:100." Foreground="{DynamicResource TextPrimary}"/>
+                    </StackPanel>
+                </GroupBox>
+                <GroupBox Header="Пакетная печать">
+                    <StackPanel>
+                        <TextBlock Text="Масштаб по умолчанию"/>
+                        <ComboBox SelectedIndex="{Binding PlotScaleIndex}" Margin="0,6,0,10">
+                            <ComboBoxItem Content="1:1"/>
+                            <ComboBoxItem Content="1:100"/>
+                        </ComboBox>
+                        <TextBlock Text="Папка PDF (пусто — рядом с DWG)"/>
+                        <DockPanel Margin="0,6,0,6">
+                            <Button DockPanel.Dock="Right" Content="…" Click="BrowseOutputClick" MinWidth="32" Width="32" Padding="4" Margin="6,0,0,0" ToolTip="Выбрать папку PDF"/>
+                            <TextBox x:Name="OutputFolderBox" Text="{Binding PlotOutputDirectory, UpdateSourceTrigger=PropertyChanged}"/>
+                        </DockPanel>
+                        <CheckBox Content="Печатать в фоне" IsChecked="{Binding PlotInBackground}"/>
+                        <CheckBox Content="Сохранять существующие PDF, добавляя индекс к новому файлу" IsChecked="{Binding KeepExistingPdfFiles}"/>
+                        <TextBlock Text="Если имя занято: файл_2.pdf, файл_3.pdf и далее. При снятой галочке PDF с тем же именем заменяется." Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,6"/>
+                        <CheckBox Content="Открыть папку после печати" IsChecked="{Binding OpenFolderAfterPlot}"/>
+                        <CheckBox Content="Открыть файл после печати" IsChecked="{Binding OpenFileAfterPlot}"/>
+                        <TextBlock Text="При печати по листам открывается первый PDF, чтобы не запускать множество окон." Foreground="{DynamicResource TextSecondary}"/>
+                    </StackPanel>
+                </GroupBox>
+                <GroupBox Header="Сумма длин">
+                    <StackPanel>
+                        <TextBlock Text="Масштаб: числитель / знаменатель"/>
+                        <UniformGrid Columns="2" Margin="0,6,0,10">
+                            <TextBox Text="{Binding ScaleNumerator, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Margin="0,0,6,0"/>
+                            <TextBox Text="{Binding ScaleDenominator, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}"/>
+                        </UniformGrid>
+                        <TextBlock Text="Длина"/>
+                        <ComboBox SelectedIndex="{Binding LengthUnit}" Margin="0,6,0,10">
+                            <ComboBoxItem Content="мм"/>
+                            <ComboBoxItem Content="м"/>
+                            <ComboBoxItem Content="км"/>
+                        </ComboBox>
+                        <TextBlock Text="Площадь"/>
+                        <ComboBox SelectedIndex="{Binding AreaUnit}" Margin="0,6,0,0">
+                            <ComboBoxItem Content="мм²"/>
+                            <ComboBoxItem Content="м²"/>
+                            <ComboBoxItem Content="км²"/>
+                        </ComboBox>
+                    </StackPanel>
+                </GroupBox>
+                <GroupBox Header="Обновления">
+                    <StackPanel>
+                        <CheckBox Content="Проверять при запуске AutoCAD и раз в сутки" IsChecked="{Binding AutoCheckUpdates}"/>
+                        <CheckBox Content="Устанавливать проверенное обновление после закрытия AutoCAD" IsChecked="{Binding AutoInstallUpdates}"/>
+                        <CheckBox Content="Включать предварительные выпуски" IsChecked="{Binding IncludePrereleaseUpdates}"/>
+                    </StackPanel>
+                </GroupBox>
+                <TextBlock Text="Настройки сохраняются для текущего пользователя. Новые значения применяются при следующем открытии соответствующей команды." Foreground="{DynamicResource TextPrimary}"/>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

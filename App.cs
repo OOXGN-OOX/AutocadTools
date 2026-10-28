@@ -36,11 +36,15 @@ namespace AutocadTools
 
         private static ContextMenuExtension _contextMenu;
         private DateTime _nextUiCheckUtc;
+        private static UI.ClassicUiController _classicUi;
+        public static void ShowClassicUi() => (_classicUi ??= new UI.ClassicUiController()).Show();
         private bool? _darkRibbon;
         private bool? _highContrastRibbon;
 
         public void Initialize()
         {
+            try { Services.PdfPlotterService.EnsureInstalled(); } catch (System.Exception ex) { LogStartupError(ex); }
+            try { _classicUi ??= new UI.ClassicUiController(); } catch (System.Exception ex) { LogStartupError(ex); }
             try { Services.StampSignatureTracking.Start(); } catch (System.Exception ex) { LogStartupError(ex); }
             try { Services.SelectionLengthService.Start(); } catch (System.Exception ex) { LogStartupError(ex); }
             try { Services.UpdateCheckService.Start(); } catch (System.Exception ex) { LogStartupError(ex); }
@@ -49,6 +53,10 @@ namespace AutocadTools
 
         public void Terminate()
         {
+            try { _classicUi?.Dispose(); } catch (System.Exception ex) { LogStartupError(ex); }
+            _classicUi = null;
+            Services.TableExcelService.Shutdown();
+            Services.CopyProtectionService.Shutdown();
             Services.StampSignatureTracking.Stop();
             Services.UpdateCheckService.Stop();
             Services.SelectionLengthService.Stop();
@@ -67,6 +75,7 @@ namespace AutocadTools
             _nextUiCheckUtc = DateTime.UtcNow.AddSeconds(1);
             // Keep checking: Ribbon may not exist on the first Idle, and workspaces can rebuild it.
             CreateRibbonSafe();
+            try { _classicUi?.EnsureCreated(); } catch (System.Exception ex) { LogStartupError(ex); }
             if (_contextMenu == null) CreateContextMenuSafe();
         }
 
@@ -162,8 +171,12 @@ namespace AutocadTools
             AddButton(toolsPanelSource, "Выбор по\nобразцу", "ATSIMILAR");
             AddButton(toolsPanelSource, "Сумма\nдлин", "ATSUM");
             AddButton(toolsPanelSource, "Мульти\nкопирование", "ATMCOPY");
+            AddButton(toolsPanelSource, "Копирование\nс нумерацией", "ATNCOPY");
             AddButton(toolsPanelSource, "Подготовка\nпланов", "ATPLAN");
             AddButton(toolsPanelSource, "Таблица\nExcel", "ATEXCEL");
+            AddButton(toolsPanelSource, "Экспорт\nExcel", "ATEXPORTEXCEL");
+            AddButton(toolsPanelSource, "Импорт\nExcel", "ATIMPORTEXCEL");
+            AddButton(toolsPanelSource, "Дополнительные\nфункции", "ATLIBRARY");
 
             var symbolsPanelSource = new RibbonPanelSource { Title = "Оформление" };
             tab.Panels.Add(new RibbonPanel { Source = symbolsPanelSource });
@@ -193,7 +206,6 @@ namespace AutocadTools
             AddButton(releasePanelSource, "Штамп", "ATSTAMP");
             AddButton(releasePanelSource, "Вставить\nформатку", "ATFRAME");
             AddButton(releasePanelSource, "Печать", "ATPLOT");
-            AddButton(releasePanelSource, "Настроить\nпечать блоков", "ATPLOTSETUP");
             AddButton(releasePanelSource, "Подготовить\nдля передачи", "ATHANDOFF");
 
             // =========================
@@ -204,6 +216,8 @@ namespace AutocadTools
             tab.Panels.Add(helpPanel);
 
             AddButton(helpPanelSource, "Команды и\nсокращения", "ATALIASES");
+            AddButton(helpPanelSource, "Настройки", "ATSETTINGS");
+            AddButton(helpPanelSource, "Меню и\nпанель", "ATCLASSIC");
             AddButton(helpPanelSource, "О программе", "ATINFO");
             AddButton(helpPanelSource, "Проверить\nобновления", "ATUPDATE");
         }

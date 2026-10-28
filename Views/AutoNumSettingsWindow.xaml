@@ -102,7 +102,15 @@
                                         <ComboBoxItem Content="Текст / МТекст"/>
                                         <ComboBoxItem Content="Мультивыноска"/>
                                         <ComboBoxItem Content="Атрибут блока"/>
+                                        <ComboBoxItem Content="Ячейка TABLE"/>
                                     </ComboBox>
+                                </StackPanel>
+                                <StackPanel Visibility="{Binding IsTableModeVisibility}" Margin="0,0,0,12">
+                                    <TextBlock Text="Ячейка во всех выбранных таблицах (от 1)" TextWrapping="Wrap"/>
+                                    <UniformGrid Columns="2" Margin="0,8,0,0">
+                                        <StackPanel Margin="0,0,8,0"><TextBlock Text="Строка"/><TextBox Text="{Binding TableRowText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Строка TABLE"/></StackPanel>
+                                        <StackPanel><TextBlock Text="Столбец"/><TextBox Text="{Binding TableColumnText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Столбец TABLE"/></StackPanel>
+                                    </UniformGrid>
                                 </StackPanel>
                                 <StackPanel Visibility="{Binding IsAttributeModeVisibility}">
                                     <TextBlock Text="Тег атрибута" Style="{StaticResource LabelStyle}" Margin="0,0,0,7"/>

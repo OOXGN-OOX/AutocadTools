@@ -1,10 +1,7 @@
-// SPDX-License-Identifier: LicenseRef-AutocadTools-Proprietary-NC-Attribution
-// See LICENSE in the repository root.
-// ============================================================================
+// SPDX-License-Identifier: AGPL-3.0-only
 // OOXGN - Copyright (c) 2026. All rights reserved.
-// Author: OOXGN | Project: AutocadTools
-// ============================================================================
-
+// Author: OOXGN | Project: BotPlusAutocadTool
+// Derived from Davud77/BotPlusAutocadTool (51e3e82). See THIRD-PARTY-NOTICES.md.
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using Autodesk.AutoCAD.ApplicationServices;
@@ -204,6 +201,7 @@ namespace AutocadTools.ViewModels
                 _settings.Mode = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsAttributeMode));
+                OnPropertyChanged(nameof(IsTableModeVisibility));
             }
         }
 
@@ -241,6 +239,7 @@ namespace AutocadTools.ViewModels
                 AutoNumSettings.NumberingMode.Text => 0,
                 AutoNumSettings.NumberingMode.MLeader => 1,
                 AutoNumSettings.NumberingMode.Attribute => 2,
+                AutoNumSettings.NumberingMode.Table => 3,
                 _ => 0
             };
             set
@@ -250,6 +249,7 @@ namespace AutocadTools.ViewModels
                     0 => AutoNumSettings.NumberingMode.Text,
                     1 => AutoNumSettings.NumberingMode.MLeader,
                     2 => AutoNumSettings.NumberingMode.Attribute,
+                    3 => AutoNumSettings.NumberingMode.Table,
                     _ => AutoNumSettings.NumberingMode.Text
                 };
                 OnPropertyChanged();
@@ -274,6 +274,12 @@ namespace AutocadTools.ViewModels
         #region Properties - Visibility
 
         public bool IsAttributeMode => Mode == AutoNumSettings.NumberingMode.Attribute;
+        public System.Windows.Visibility IsTableModeVisibility => Mode == AutoNumSettings.NumberingMode.Table ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+        public int TableRow { get => _settings.TableRow; set { _settings.TableRow = value; OnPropertyChanged(); } }
+        public int TableColumn { get => _settings.TableColumn; set { _settings.TableColumn = value; OnPropertyChanged(); } }
+        private string _tableRowText, _tableColumnText;
+        public string TableRowText { get => _tableRowText ?? TableRow.ToString(); set => SetProperty(ref _tableRowText, value); }
+        public string TableColumnText { get => _tableColumnText ?? TableColumn.ToString(); set => SetProperty(ref _tableColumnText, value); }
         public bool IsSortingMode => Order == AutoNumSettings.NumberingOrder.Geometric;
 
         public System.Windows.Visibility IsAttributeModeVisibility => IsAttributeMode ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
@@ -293,10 +299,11 @@ namespace AutocadTools.ViewModels
                 var items = new List<string>(PreviewCount);
                 if (_settings == null) return items;
 
-                int current = StartNumber;
+                long current = StartNumber;
                 for (int i = 0; i < PreviewCount; i++)
                 {
-                    items.Add(_settings.FormatNumber(current));
+                    if (current < int.MinValue || current > int.MaxValue) break;
+                    items.Add(_settings.FormatNumber((int)current));
                     current += Step;
                 }
                 return items;
@@ -313,6 +320,16 @@ namespace AutocadTools.ViewModels
 
         private void ExecuteOk(object parameter)
         {
+            if (!int.TryParse(StartNumberText, out _) || !int.TryParse(StepText, out var step) || step == 0 ||
+                !int.TryParse(DigitsText, out var digits) || digits < 0 || digits > 16 ||
+                !int.TryParse(TableRowText, out var row) || row < 1 || !int.TryParse(TableColumnText, out var column) || column < 1)
+            {
+                System.Windows.MessageBox.Show("Введите целые числа. Шаг не равен нулю, количество знаков — от 0 до 16, строка и столбец — от 1.", "Автонумерация");
+                return;
+            }
+            _settings.StartNumber = int.Parse(StartNumberText);
+            _settings.Step = step;
+            _settings.TableRow = row; _settings.TableColumn = column;
             _settings?.Save();
             DialogResult = true;
         }

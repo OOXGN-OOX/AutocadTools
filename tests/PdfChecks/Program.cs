@@ -56,6 +56,58 @@ var originalHash = SHA256.HashData(File.ReadAllBytes(sourcePath));
 Assert(!PdfPostProcessingService.ProcessPdf(sourcePath, items.Take(1).ToArray(), null), "Page-count mismatch was accepted");
 Assert(originalHash.SequenceEqual(SHA256.HashData(File.ReadAllBytes(sourcePath))), "Failed processing changed source PDF");
 PdfPostProcessingService.DeliverPdf(sourcePath, binder, items, false);
+var combined = System.IO.Path.Combine(directory, "combined.pdf");
+var orderedSheets = Directory.GetFiles(sheets, "*.pdf").OrderBy(p => p).Reverse().ToArray();
+PdfPostProcessingService.CombinePages(orderedSheets, combined);
+using (var document = new PdfDocument(new PdfReader(combined)))
+{
+    Assert(document.GetNumberOfPages() == 2, "Combined page count");
+    Assert(document.GetPage(1).GetCropBox().GetHeight() > document.GetPage(1).GetCropBox().GetWidth(), "Combined sheet order changed");
+    Assert(document.GetPage(2).GetAnnotations().Count == 1, "Combination lost annotation");
+}
+var combinedHash = SHA256.HashData(File.ReadAllBytes(combined));
+try { PdfPostProcessingService.CombinePages(new[] { sourcePath }, combined); throw new Exception("Multi-page intermediate accepted"); }
+catch (InvalidDataException) { }
+Assert(combinedHash.SequenceEqual(SHA256.HashData(File.ReadAllBytes(combined))), "Failed combination changed previous output");
+var binderHash = SHA256.HashData(File.ReadAllBytes(binder));
+var second = PdfPostProcessingService.DeliverPdf(sourcePath, binder, items, false, true).Single();
+var third = PdfPostProcessingService.DeliverPdf(sourcePath, binder, items, false, true).Single();
+Assert(second == System.IO.Path.Combine(directory, "binder_2.pdf") && third == System.IO.Path.Combine(directory, "binder_3.pdf"), "Binder index sequence");
+Assert(binderHash.SequenceEqual(SHA256.HashData(File.ReadAllBytes(binder))), "Indexed delivery overwrote original");
+var moreSheets = PdfPostProcessingService.DeliverPdf(sourcePath, sheets, items, true, true);
+Assert(moreSheets.All(p => p.EndsWith("_2.pdf")) && Directory.GetFiles(sheets, "*.pdf").Length == 4, "Sheet indexing failed");
+PdfPostProcessingService.DeliverPdf(sourcePath, sheets, items, true, false);
+Assert(Directory.GetFiles(sheets, "*.pdf").Length == 4, "Overwrite mode created extra files");
+Console.WriteLine("PASS: indexed binder/sheets preserve originals; overwrite mode replaces exact names.");
+var customPath = System.IO.Path.Combine(directory, "frames.pdf");
+var frames = new List<BatchPlotItem>
+{
+    new() { SheetNumber = "wide", Format = "A0x3", FormatDefinition = new(2523, 1189), PlotWidthMm = 2523, PlotHeightMm = 1189 },
+    new() { SheetNumber = "custom", Format = "Нестандартный", PlotWidthMm = 1234, PlotHeightMm = 456 },
+    new() { SheetNumber = "rotated", Format = "A3x4", FormatDefinition = new(1189, 420), PlotWidthMm = 420, PlotHeightMm = 1189 }
+};
+using (var document = new PdfDocument(new PdfWriter(customPath)))
+    foreach (var frame in frames)
+        document.AddNewPage(new PageSize((float)(3000 * 72.0 / 25.4), (float)(3000 * 72.0 / 25.4)));
+Assert(PdfPostProcessingService.ProcessPdf(customPath, frames, null), "Frame crop failed");
+using (var document = new PdfDocument(new PdfReader(customPath)))
+    for (int i = 0; i < frames.Count; i++)
+    {
+        var page = document.GetPage(i + 1);
+        foreach (var bounds in new[] { page.GetMediaBox(), page.GetCropBox(), page.GetTrimBox(), page.GetBleedBox(), page.GetArtBox() })
+        {
+            Assert(Math.Abs(bounds.GetWidth() * 25.4 / 72 - frames[i].PlotWidthMm) < 0.01, "Physical frame width mismatch");
+            Assert(Math.Abs(bounds.GetHeight() * 25.4 / 72 - frames[i].PlotHeightMm) < 0.01, "Physical frame height mismatch");
+        }
+    }
+var undersizedPath = System.IO.Path.Combine(directory, "undersized.pdf");
+using (var document = new PdfDocument(new PdfWriter(undersizedPath))) document.AddNewPage(PageSize.A4);
+var undersizedHash = SHA256.HashData(File.ReadAllBytes(undersizedPath));
+Assert(!PdfPostProcessingService.ProcessPdf(undersizedPath, frames.Take(1).ToArray(), null), "Undersized paper silently clipped frame");
+Assert(undersizedHash.SequenceEqual(SHA256.HashData(File.ReadAllBytes(undersizedPath))), "Undersized error changed source");
+
+Console.WriteLine("PASS: all PDF page boxes, arbitrary/wide/rotated formats, combination, collision protection and undersized-source recovery.");
+
 Console.WriteLine("PASS: landscape/portrait crop, no implicit links, explicit sheet links, binder, individual sheets, duplicate numbers, mismatch preserves original, overwrite.");
 Console.WriteLine(directory);
 static void Assert(bool value, string message) { if (!value) throw new Exception(message); }
@@ -72,6 +124,8 @@ namespace AutocadTools.Models
         public string SheetNumber { get; set; }
         public string Format { get; set; }
         public TestFormat FormatDefinition { get; set; }
+        public double PlotWidthMm { get; set; }
+        public double PlotHeightMm { get; set; }
     }
     public sealed record TestFormat(double Width, double Height);
 }

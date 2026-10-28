@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $taskRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 . (Join-Path $taskRoot 'scripts\File-Hash.ps1')
 . (Join-Path $taskRoot 'scripts\Release-State.ps1')
@@ -30,6 +30,14 @@ try {
     Assert-Workflow ((Get-ReleaseFingerprint -Root $taskScratch) -eq $taskFirst) 'Documentation/tests/local working files should not invalidate shipped binaries.'
     [IO.File]::WriteAllText($taskCode, 'changed')
     $taskChanged = Get-ReleaseFingerprint -Root $taskScratch
+    foreach ($taskAsset in @('library.zip','catalog.json','plotter.pc3','papers.pmp','notice.txt')) {
+        $taskAssetPath = Join-Path $taskScratch $taskAsset
+        [IO.File]::WriteAllText($taskAssetPath, 'first')
+        $taskBeforeAsset = Get-ReleaseFingerprint -Root $taskScratch
+        [IO.File]::WriteAllText($taskAssetPath, 'changed')
+        Assert-Workflow ((Get-ReleaseFingerprint -Root $taskScratch) -ne $taskBeforeAsset) "Runtime asset change must invalidate cache: $taskAsset"
+        Remove-Item -LiteralPath $taskAssetPath
+    }
     Assert-Workflow ($taskChanged -ne $taskFirst) 'Code change must invalidate cache.'
     $taskArtifacts = Join-Path $taskScratch 'artifacts'
     New-Item -ItemType Directory -Path $taskArtifacts | Out-Null

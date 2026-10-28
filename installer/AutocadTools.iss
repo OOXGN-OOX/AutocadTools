@@ -1,4 +1,4 @@
-#ifndef BundleDir
+﻿#ifndef BundleDir
   #error BundleDir must point to a complete AutocadTools.bundle
 #endif
 #ifndef ReleaseDir
@@ -46,6 +46,11 @@ Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [InstallDelete]
+Type: filesandordirs; Name: "{app}\Contents\Windows\2025-2026\ExcelRuntime"
+Type: filesandordirs; Name: "{app}\Contents\Windows\2025-2026\Assets\AdditionalFunctions"
+Type: filesandordirs; Name: "{app}\Contents\Windows\2027\ExcelRuntime"
+Type: filesandordirs; Name: "{app}\Contents\Windows\2027\Assets\AdditionalFunctions"
+
 Type: files; Name: "{app}\Contents\Windows\2025-2026\*.dll"
 Type: files; Name: "{app}\Contents\Windows\2025-2026\*.deps.json"
 Type: files; Name: "{app}\Contents\Windows\2027\*.dll"

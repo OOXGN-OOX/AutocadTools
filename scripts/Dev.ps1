@@ -1,6 +1,6 @@
 ﻿param(
     [ValidateSet('Check','Test','Build','Preview')][string]$Mode = 'Check',
-    [ValidateSet('All','MultiCopy','Stamp','Updates','Pdf','UI','Commands','Symbols')][string]$Suite = 'All',
+    [ValidateSet('All','MultiCopy','Stamp','Updates','Pdf','UI','Commands','Symbols','NumberedCopy','Core')][string]$Suite = 'All',
     [ValidateSet('2025','2026','2027')][string]$AutoCADVersion = '2026',
     [switch]$AutoCAD,
     [string]$DotnetPath
@@ -30,11 +30,22 @@ if ($Mode -eq 'Build') {
     Write-Host 'Debug DLL ready. No distribution or Git operation was performed.'
     return
 }
+if ($Suite -in @('All','Core')) {
+    foreach ($taskFramework in @('net8.0-windows','net10.0-windows')) {
+        Invoke-TaskDotnet @('build', (Join-Path $taskRoot 'tests\CoreChecks\CoreChecks.csproj'), '-c', 'Debug', '-f', $taskFramework)
+        $taskCoreRuntime = if ($taskFramework -eq 'net8.0-windows' -and !@(& $DotnetPath --list-runtimes | Where-Object { $_ -match '^Microsoft.NETCore.App 8\.' }).Count) { (Get-Command dotnet.exe -ErrorAction Stop).Source } else { $DotnetPath }
+        & $taskCoreRuntime exec (Join-Path $taskRoot "tests\CoreChecks\bin\Debug\$taskFramework\CoreChecks.dll") | Out-Host
+        if ($LASTEXITCODE -ne 0) { throw "Core regressions failed on $taskFramework." }
+    }
+}
 if ($Suite -in @('All','Commands')) {
     Invoke-TaskDotnet @('run', '--project', (Join-Path $taskRoot 'tests\CommandChecks\CommandChecks.csproj'), '-c', 'Debug', '--', $taskRoot)
 }
 if ($Suite -in @('All','MultiCopy')) {
     Invoke-TaskDotnet @('run', '--project', (Join-Path $taskRoot 'tests\MultiCopyLayoutChecks\MultiCopyLayoutChecks.csproj'), '-c', 'Debug')
+}
+if ($Suite -in @('All','NumberedCopy')) {
+    Invoke-TaskDotnet @('run', '--project', (Join-Path $taskRoot 'tests\NumberedCopyTextChecks\NumberedCopyTextChecks.csproj'), '-c', 'Debug')
 }
 if ($Suite -in @('All','Pdf')) {
     Invoke-TaskDotnet @('run', '--project', (Join-Path $taskRoot 'tests\PdfChecks\PdfChecks.csproj'), '-c', 'Debug')
@@ -67,9 +78,11 @@ if ($Suite -in @('All','Updates')) {
 if ($AutoCAD) {
     if ($AutoCADVersion -eq '2025') { throw 'Core Console checks currently support 2026 and 2027.' }
     if ($Suite -in @('All','MultiCopy')) { & (Join-Path $taskRoot 'tests\MultiCopyChecks\Run.ps1') -AutoCADVersion $AutoCADVersion -DotnetPath $DotnetPath | Out-Host }
+    if ($Suite -in @('All','NumberedCopy')) { & (Join-Path $taskRoot 'tests\NumberedCopyChecks\Run.ps1') -AutoCADVersion $AutoCADVersion -DotnetPath $DotnetPath | Out-Host }
     if ($Suite -in @('All','Stamp')) { & (Join-Path $taskRoot 'tests\StampChecks\Run.ps1') -AutoCADVersion $AutoCADVersion -DotnetPath $DotnetPath | Out-Host }
     if ($Suite -in @('All','Symbols')) { & (Join-Path $taskRoot 'tests\DrawingSymbolChecks\Run.ps1') -AutoCADVersion $AutoCADVersion -DotnetPath $DotnetPath | Out-Host }
     if ($Suite -eq 'All') { & (Join-Path $taskRoot 'tests\AlignSkewChecks\Run.ps1') -AutoCADVersion $AutoCADVersion -DotnetPath $DotnetPath | Out-Host }
+    if ($Suite -eq 'All') { & (Join-Path $PSScriptRoot 'Test-Integration.ps1') -Year ([int]$AutoCADVersion) -DotnetPath $DotnetPath | Out-Host }
 }
 elseif ($Suite -eq 'Symbols') {
     throw 'Symbol database checks require -AutoCAD and an installed AutoCAD 2026 or 2027 Core Console.'

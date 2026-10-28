@@ -1,10 +1,7 @@
-// SPDX-License-Identifier: LicenseRef-AutocadTools-Proprietary-NC-Attribution
-// See LICENSE in the repository root.
-// ============================================================================
+// SPDX-License-Identifier: AGPL-3.0-only
 // OOXGN - Copyright (c) 2026. All rights reserved.
-// Author: OOXGN | Project: AutocadTools
-// ============================================================================
-
+// Author: OOXGN | Project: BotPlusAutocadTool
+// Derived from Davud77/BotPlusAutocadTool (51e3e82). See THIRD-PARTY-NOTICES.md.
 using Microsoft.Win32;
 
 namespace AutocadTools.Models
@@ -62,7 +59,8 @@ namespace AutocadTools.Models
             /// <summary>Атрибуты блоков</summary>
             Attribute,
             /// <summary>Мультивыноски (MLeader)</summary>
-            MLeader
+            MLeader,
+            Table
         }
 
         #endregion
@@ -96,6 +94,9 @@ namespace AutocadTools.Models
 
         /// <summary>Тег атрибута (для режима Attribute)</summary>
         public string AttributeTag { get; set; } = "MARK";
+        // One-based indices include title and header rows, matching the visible table.
+        public int TableRow { get; set; } = 1;
+        public int TableColumn { get; set; } = 1;
 
         #endregion
 
@@ -129,12 +130,15 @@ namespace AutocadTools.Models
                 settings.Mode = (NumberingMode)GetInt(key, "Mode", (int)NumberingMode.Text);
                 settings.AttributeTag = GetString(key, "AttributeTag", "MARK");
                 settings.Sorting = (SortPreset)GetInt(key, "Sorting", (int)SortPreset.RowsTopDown);
+                settings.TableRow = GetInt(key, "TableRow", 1);
+                settings.TableColumn = GetInt(key, "TableColumn", 1);
             }
             catch
             {
                 // При ошибке чтения используем значения по умолчанию
             }
 
+            settings.Normalize();
             return settings;
         }
 
@@ -157,6 +161,8 @@ namespace AutocadTools.Models
                 key.SetValue("Mode", (int)Mode);
                 key.SetValue("AttributeTag", AttributeTag ?? "MARK");
                 key.SetValue("Sorting", (int)Sorting);
+                key.SetValue("TableRow", TableRow);
+                key.SetValue("TableColumn", TableColumn);
             }
             catch
             {
@@ -169,13 +175,22 @@ namespace AutocadTools.Models
         /// </summary>
         public string FormatNumber(int number)
         {
-            string numberStr = Digits > 0
-                ? number.ToString().PadLeft(Digits, '0')
-                : number.ToString();
-
-            return (Prefix ?? string.Empty) + numberStr + (Suffix ?? string.Empty);
+            int digits = System.Math.Clamp(Digits, 0, 16);
+            var format = digits > 0 ? "D" + digits : "D";
+            return (Prefix ?? string.Empty) + number.ToString(format, System.Globalization.CultureInfo.InvariantCulture) + (Suffix ?? string.Empty);
         }
 
+        internal void Normalize()
+        {
+            Digits = System.Math.Clamp(Digits, 0, 16);
+            if (Step == 0) Step = 1;
+            if (!System.Enum.IsDefined(Order)) Order = NumberingOrder.Pick;
+            if (!System.Enum.IsDefined(Mode)) Mode = NumberingMode.Text;
+            if (!System.Enum.IsDefined(Sorting)) Sorting = SortPreset.RowsTopDown;
+            AttributeTag = string.IsNullOrWhiteSpace(AttributeTag) ? "MARK" : AttributeTag;
+            TableRow = System.Math.Max(1, TableRow);
+            TableColumn = System.Math.Max(1, TableColumn);
+        }
         #endregion
 
         #region Private Helpers
@@ -184,7 +199,10 @@ namespace AutocadTools.Models
             => key.GetValue(name, defaultValue)?.ToString() ?? defaultValue;
 
         private static int GetInt(RegistryKey key, string name, int defaultValue)
-            => (int)(key.GetValue(name, defaultValue) ?? defaultValue);
+        {
+            var value = key.GetValue(name, defaultValue)?.ToString();
+            return int.TryParse(value, out var result) ? result : defaultValue;
+        }
 
         #endregion
     }

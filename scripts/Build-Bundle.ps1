@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$AutoCAD2025Path,
     [string]$AutoCAD2027Path,
     [ValidateSet('Debug','Release')][string]$Configuration = 'Release',
@@ -18,7 +18,7 @@ foreach ($spec in $specs) {
         if (!(Test-Path -LiteralPath (Join-Path $spec.Path $name))) { throw "Missing AutoCAD $($spec.Year) reference: $name in $($spec.Path)" }
     }
 }
-$stageRoot = Join-Path $projectRoot ('artifacts\staging\' + [Guid]::NewGuid().ToString('N'))
+$stageRoot = Join-Path $projectRoot ('artifacts\stage\' + [Guid]::NewGuid().ToString('N').Substring(0, 8))
 $stageBundle = Join-Path $stageRoot 'AutocadTools.bundle'
 New-Item -ItemType Directory -Path $stageBundle -Force | Out-Null
 Copy-Item -LiteralPath (Join-Path $projectRoot 'Bundle\AutocadTools.bundle\PackageContents.xml') -Destination $stageBundle

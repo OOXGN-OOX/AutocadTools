@@ -1,6 +1,5 @@
-// Copyright (c) 2026 OOXGN (GitHub: OOXGN-OOX). All rights reserved.
-// SPDX-License-Identifier: LicenseRef-AutocadTools-Proprietary-NC-Attribution
-// See LICENSE in the repository root.
+// SPDX-License-Identifier: AGPL-3.0-only
+// Derived from Davud77/BotPlusAutocadTool (51e3e82). See THIRD-PARTY-NOTICES.md.
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
@@ -130,7 +129,10 @@ namespace AutocadTools.Services
             var name = Path.GetFileNameWithoutExtension(src);
             var dated = $"{name}_{DateTime.Now:yy.MM.dd}.dwg";
 
-            return Path.Combine(dir, dated);
+            var path = Path.Combine(dir, dated);
+            for (int suffix = 2; File.Exists(path); suffix++)
+                path = Path.Combine(dir, $"{name}_{DateTime.Now:yy.MM.dd}_{suffix}.dwg");
+            return path;
         }
 
         // ==========================================================================

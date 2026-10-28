@@ -1,4 +1,4 @@
-param([string]$AutoCADPath = 'C:\Program Files\Autodesk\AutoCAD 2026')
+﻿param([string]$AutoCADPath = 'C:\Program Files\Autodesk\AutoCAD 2026')
 $ErrorActionPreference = 'Stop'
 Write-Output 'AutocadTools load diagnostics (read-only)'
 foreach ($base in @("$env:ProgramFiles\Autodesk\ApplicationPlugins", "$env:APPDATA\Autodesk\ApplicationPlugins", "$env:ProgramData\Autodesk\ApplicationPlugins")) {
@@ -16,7 +16,7 @@ foreach ($base in @("$env:ProgramFiles\Autodesk\ApplicationPlugins", "$env:APPDA
                 if (!(Test-Path -LiteralPath $dll)) { Write-Output "ERROR: Missing module $dll"; continue }
                 Write-Output "Module: $dll"
                 Write-Output "Assembly: $([Reflection.AssemblyName]::GetAssemblyName($dll).FullName)"
-                foreach ($dependency in @('ClosedXML.dll','Newtonsoft.Json.dll','Microsoft.Extensions.Logging.Abstractions.dll')) {
+                foreach ($dependency in @('ExcelRuntime/AutocadTools.ExcelRuntime.dll','ExcelRuntime/ClosedXML.dll','Newtonsoft.Json.dll','Microsoft.Extensions.Logging.Abstractions.dll','Assets/AdditionalFunctions/catalog.json','Assets/Plotters/AutocadTools PDF.pc3')) {
                     Write-Output "$dependency exists: $(Test-Path -LiteralPath (Join-Path (Split-Path $dll -Parent) $dependency))"
                 }
             }

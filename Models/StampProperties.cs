@@ -1,10 +1,7 @@
-// SPDX-License-Identifier: LicenseRef-AutocadTools-Proprietary-NC-Attribution
-// See LICENSE in the repository root.
-// ============================================================================
+// SPDX-License-Identifier: AGPL-3.0-only
 // OOXGN - Copyright (c) 2026. All rights reserved.
-// Author: OOXGN | Project: AutocadTools
-// ============================================================================
-
+// Author: OOXGN | Project: BotPlusAutocadTool
+// Derived from Davud77/BotPlusAutocadTool (51e3e82). See THIRD-PARTY-NOTICES.md.
 using System.Collections.Generic;
 
 namespace AutocadTools.Models
@@ -23,7 +20,7 @@ namespace AutocadTools.Models
 
         public string GetValue(string key)
         {
-            return Properties.TryGetValue(key, out string value) ? value : string.Empty;
+            return Properties.TryGetValue(key, out string value) && !string.IsNullOrWhiteSpace(value) ? value : " ";
         }
 
         public void SetValue(string key, string value)

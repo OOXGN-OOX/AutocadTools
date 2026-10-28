@@ -1,10 +1,7 @@
-// SPDX-License-Identifier: LicenseRef-AutocadTools-Proprietary-NC-Attribution
-// See LICENSE in the repository root.
-// ============================================================================
+// SPDX-License-Identifier: AGPL-3.0-only
 // OOXGN - Copyright (c) 2026. All rights reserved.
-// Author: OOXGN | Project: AutocadTools
-// ============================================================================
-
+// Author: OOXGN | Project: BotPlusAutocadTool
+// Derived from Davud77/BotPlusAutocadTool (51e3e82). See THIRD-PARTY-NOTICES.md.
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Colors;
@@ -21,9 +18,11 @@ namespace AutocadTools.Services
         private readonly Database _db;
         private readonly Transaction _tr;
         private readonly BlockTableRecord _currentSpace;
+        private readonly Point3d? _basePoint;
 
-        public PlanPrepService(PlanPrepOptions options, Database db, Transaction tr)
+        public PlanPrepService(PlanPrepOptions options, Database db, Transaction tr, Point3d? basePoint = null)
         {
+            _basePoint = basePoint;
             _options = options;
             _db = db;
             _tr = tr;
@@ -353,7 +352,7 @@ namespace AutocadTools.Services
             {
                 if (id.IsErased) continue;
                 Entity ent = (Entity)_tr.GetObject(id, OpenMode.ForWrite);
-                ent.ColorIndex = 8;
+                ent.ColorIndex = 252;
             }
         }
 
@@ -378,9 +377,9 @@ namespace AutocadTools.Services
                 catch { }
             }
 
-            Point3d center = hasExt ? ext.MinPoint + (ext.MaxPoint - ext.MinPoint) / 2.0 : Point3d.Origin;
+            Point3d center = _basePoint ?? (hasExt ? ext.MinPoint + (ext.MaxPoint - ext.MinPoint) / 2.0 : Point3d.Origin);
 
-            string blkName = "PLAN_PREP_" + DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            string blkName = "PLAN_PREP_" + DateTime.Now.ToString("yyyyMMdd_HHmmss_fffffff");
             BlockTable bt = (BlockTable)_tr.GetObject(_db.BlockTableId, OpenMode.ForWrite);
 
             using (BlockTableRecord btr = new BlockTableRecord())

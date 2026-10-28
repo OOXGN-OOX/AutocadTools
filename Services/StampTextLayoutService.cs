@@ -144,7 +144,7 @@ namespace AutocadTools.Services
                         if (!change.Item3)
                         {
                             var cell = Cells.First(c => string.Equals(c.Tag, change.Item1.Tag, StringComparison.OrdinalIgnoreCase));
-                            using (var field = new Field("\\AcVar CustomDP." + cell.Property)) change.Item1.SetField(field);
+                            using (var field = new Field("%<\\AcVar CustomDP." + cell.Property + ">%", true)) change.Item1.SetField(field);
                             change.Item1.UpdateMTextAttribute();
                         }
                         change.Item1.RecordGraphicsModified(true);

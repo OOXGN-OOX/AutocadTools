@@ -1,12 +1,7 @@
-// SPDX-License-Identifier: LicenseRef-AutocadTools-Proprietary-NC-Attribution
-// See LICENSE in the repository root.
-// ============================================================================
+// SPDX-License-Identifier: AGPL-3.0-only
 // OOXGN - Copyright (c) 2026. 
-// Author: OOXGN | Project: AutocadTools
-// ============================================================================
-
-// File: Services/BlockExportStage1Service.cs
-
+// Author: OOXGN | Project: BotPlusAutocadTool
+// Derived from Davud77/BotPlusAutocadTool (51e3e82). See THIRD-PARTY-NOTICES.md.
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
@@ -15,35 +10,27 @@ using Autodesk.AutoCAD.PlottingServices;
 using Autodesk.AutoCAD.Runtime;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Text.RegularExpressions;
 using AutocadTools.Models;
 
 namespace AutocadTools.Services
 {
     /// <summary>
     /// Сервис подготовки PageSetup и генерации DSD.
-    /// - Media подбираем по ГОСТ размерам.
-    /// - PlotWindowArea строим по рамочной прямоугольной полилинии внутри блока.
-    /// - Вершины рамки переводим WCS->DCS через текущий view и отдаем SetPlotWindowArea.
-    ///
-    /// ВАЖНО (точность):
-    /// Для стандартных форматов (A0-A4 без "x") при точном найденном media включаем режим:
-    /// 1:1, PlotOrigin=(0,0), PlotCentered=false (без ScaleToFit) — чтобы убрать суб-мм сдвиги,
-    /// которые часто появляются из-за Fit/Center и драйвера PDF.
+    /// - Нулевая область полей и точный масштаб для стандартных, кратных и произвольных рамок.
+    /// - Размер бумаги проверяется по данным драйвера, а окно рамки переводится из WCS в DCS.
     /// </summary>
     public static class BlockExportStage1Service
     {
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern uint GetLongPathName(string lpszShortPath, StringBuilder lpszLongPath, uint cchBuffer);
 
-        private const string PlotterName = "DWG To PDF.pc3";
+        private const string PlotterName = PdfPlotterService.PlotterName;
 
-        private static readonly Dictionary<string, string> _pageSetupCache = new Dictionary<string, string>();
+
 
         /// <summary>
         /// Генерирует PageSetup'ы и DSD файл на основе выбранных элементов.
@@ -57,7 +44,7 @@ namespace AutocadTools.Services
             var db = doc.Database;
             var ed = doc.Editor;
 
-            _pageSetupCache.Clear();
+            var pageSetupCache = new Dictionary<string, string>(StringComparer.Ordinal);
 
             string dwgPathForDsd = GetBestDwgPath(doc);
 
@@ -65,7 +52,7 @@ namespace AutocadTools.Services
                 !Path.IsPathRooted(dwgPathForDsd) ||
                 !File.Exists(dwgPathForDsd))
             {
-                ed.WriteMessage("\n[Autocad Tools Error] Чертёж не сохранён или путь не найден. Сохраните DWG перед печатью.\n");
+                ed.WriteMessage("\n[Autocad Tools] Чертёж не сохранён или путь не найден. Сохраните DWG перед печатью.\n");
                 return false;
             }
 
@@ -78,18 +65,15 @@ namespace AutocadTools.Services
 
             if (!printItems.Any())
             {
-                ed.WriteMessage("\n[Autocad Tools Warning] Нет выбранных листов для печати.\n");
+                ed.WriteMessage("\n[Autocad Tools] Нет выбранных листов для печати.\n");
                 return false;
             }
 
+            PdfPlotterService.EnsureInstalled();
+            var mediaOptions = ReadMediaOptions();
             ed.WriteMessage($"\n[Autocad Tools] Подготовка DSD для {printItems.Count} листов...\n");
 
-            // Заголовок DSD
-            var dsd = new StringBuilder(4096);
-            dsd.AppendLine("[DWF6Version]");
-            dsd.AppendLine("Ver=1");
-            dsd.AppendLine("[DWF6MinorVersion]");
-            dsd.AppendLine("MinorVer=1");
+            var entries = new List<DsdSheet>();
 
             int sheetIndex = 1;
             var usedSheetTitles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -112,7 +96,7 @@ namespace AutocadTools.Services
                     string cacheKey =
                         $"{formatName}_{item.BlockId.Handle.Value}_{item.Extents.MinPoint.X:F3}_{item.Extents.MinPoint.Y:F3}_{item.Extents.MaxPoint.X:F3}_{item.Extents.MaxPoint.Y:F3}";
 
-                    if (!_pageSetupCache.ContainsKey(cacheKey))
+                    if (!pageSetupCache.ContainsKey(cacheKey))
                     {
                         PlotSettings ps;
 
@@ -132,12 +116,12 @@ namespace AutocadTools.Services
                             psDict.UpgradeOpen();
                         }
 
-                        ApplyPlotSettingsForItem(ps, item, ed, tr);
-                        _pageSetupCache[cacheKey] = setupName;
+                        ApplyPlotSettingsForItem(ps, item, ed, tr, mediaOptions);
+                        pageSetupCache[cacheKey] = setupName;
                     }
                     else
                     {
-                        setupName = _pageSetupCache[cacheKey];
+                        setupName = pageSetupCache[cacheKey];
                     }
 
                     // Уникальное имя листа для DSD
@@ -158,14 +142,7 @@ namespace AutocadTools.Services
                         sheetTitle = candidate;
                     }
 
-                    dsd.AppendLine($"[DWF6Sheet:{sheetTitle}]");
-                    dsd.AppendLine($"DWG={dwgPathForDsd}");
-                    dsd.AppendLine("Layout=Model");
-                    dsd.AppendLine($"Setup={setupName}");
-                    dsd.AppendLine($"OriginalSheetPath={dwgPathForDsd}");
-                    dsd.AppendLine("Has Plot Port=0");
-                    dsd.AppendLine("Has3DDWF=0");
-
+                    entries.Add(new DsdSheet(dwgPathForDsd, modelLayout.LayoutName, setupName, sheetTitle));
                     sheetIndex++;
                 }
 
@@ -174,7 +151,7 @@ namespace AutocadTools.Services
 
             if (sheetIndex == 1)
             {
-                ed.WriteMessage("\n[Autocad Tools Warning] Не удалось подготовить ни одного листа.\n");
+                ed.WriteMessage("\n[Autocad Tools] Не удалось подготовить ни одного листа.\n");
                 return false;
             }
 
@@ -183,183 +160,58 @@ namespace AutocadTools.Services
             string outputFolder = Path.GetDirectoryName(pdfName);
             Directory.CreateDirectory(outputFolder);
 
-            dsd.AppendLine("[Target]");
-            dsd.AppendLine("Type=6"); // Multi-sheet PDF
-            dsd.AppendLine($"DWF={pdfName}");
-            dsd.AppendLine($"OUT={outputFolder}");
-            dsd.AppendLine("PWD=");
-
-            dsd.AppendLine("PromptForDwfName=FALSE");
-            dsd.AppendLine("PrepareForPreview=FALSE");
-            dsd.AppendLine("PreviewSettings=0");
-
-            dsd.AppendLine("[MRU block template]");
-            dsd.AppendLine("MRU=0");
-            dsd.AppendLine("[MRU Local]");
-            dsd.AppendLine("MRU=1");
-            dsd.AppendLine("File0=");
-            dsd.AppendLine("[MRU Sheet List]");
-            dsd.AppendLine("MRU=1");
-            dsd.AppendLine($"File0={dsdPath}");
-
-            dsd.AppendLine("[PdfOptions]");
-            dsd.AppendLine("IncludeHyperlinks=FALSE");
-            dsd.AppendLine("CreateBookmarks=TRUE");
-            dsd.AppendLine("CaptureFontsInDrawing=TRUE");
-            dsd.AppendLine("ConvertTextToGeometry=FALSE");
-            dsd.AppendLine("VectorResolution=1200");
-            dsd.AppendLine("RasterResolution=400");
-
-            dsd.AppendLine("[AutoCAD Block Data]");
-            dsd.AppendLine("IncludeBlockInfo=0");
-            dsd.AppendLine("BlockTmplFilePath=");
-
-            dsd.AppendLine("[SheetSet Properties]");
-            dsd.AppendLine("IsSheetSet=FALSE");
-            dsd.AppendLine("IsHomogeneous=FALSE");
-            dsd.AppendLine("SheetSet Name=");
-            dsd.AppendLine("NoOfCopies=1");
-            dsd.AppendLine("PlotStampOn=FALSE");
-            dsd.AppendLine("ViewFile=FALSE");
-            dsd.AppendLine("JobID=1");
-            dsd.AppendLine("SelectionSetName=");
-            dsd.AppendLine("AcadProfile=");
-            dsd.AppendLine("CategoryName=");
-            dsd.AppendLine("LogFilePath=");
-            dsd.AppendLine("IncludeLayer=TRUE");
-            dsd.AppendLine("LineMerge=FALSE");
-            dsd.AppendLine("CurrentPrecision=");
-            dsd.AppendLine("PromptForDwfName=FALSE");
-            dsd.AppendLine("PwdProtectPublishedDWF=FALSE");
-            dsd.AppendLine("PromptForPwd=FALSE");
-            dsd.AppendLine("RepublishingMarkups=FALSE");
-            dsd.AppendLine("PublishSheetSetMetadata=FALSE");
-            dsd.AppendLine("PublishSheetMetadata=FALSE");
-            dsd.AppendLine("3DDWFOptions=0 1");
-
             try
             {
-                File.WriteAllText(dsdPath, dsd.ToString(), Encoding.Unicode);
+                DsdFileWriter.Write(dsdPath, pdfName, entries);
                 ed.WriteMessage($"[Autocad Tools] ✓ DSD создан: {dsdPath}\n");
                 ed.WriteMessage($"[Autocad Tools] ✓ PDF будет создан в: {pdfName}\n");
-                ed.WriteMessage($"[Autocad Tools] ✓ Листов: {sheetIndex - 1}, уникальных PageSetup: {_pageSetupCache.Count}\n");
+                ed.WriteMessage($"[Autocad Tools] ✓ Листов: {sheetIndex - 1}, уникальных PageSetup: {pageSetupCache.Count}\n");
                 return true;
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n[Autocad Tools Error] Не удалось создать DSD: {ex.Message}\n");
+                ed.WriteMessage($"\n[Autocad Tools] Не удалось создать DSD: {ex.Message}\n");
                 return false;
             }
         }
 
-        private static void ApplyPlotSettingsForItem(PlotSettings ps, BatchPlotItem item, Editor ed, Transaction tr)
+        private static void ApplyPlotSettingsForItem(PlotSettings ps, BatchPlotItem item, Editor ed, Transaction tr,
+            List<(string Name, double Width, double Height)> mediaOptions)
         {
             PlotSettingsValidator psv = PlotSettingsValidator.Current;
 
             try
             {
                 psv.RefreshLists(ps);
-
-                // 1) Устройство
                 psv.SetPlotConfigurationName(ps, PlotterName, null);
                 psv.RefreshLists(ps);
-
-                // 2) Точные размеры (ГОСТ) + ориентация
-                double exactWidth;
-                double exactHeight;
-
-                if (item.FormatDefinition != null)
-                {
-                    exactWidth = item.FormatDefinition.Width;
-                    exactHeight = item.FormatDefinition.Height;
-                }
-                else
-                {
-                    exactWidth = Math.Abs(item.Extents.MaxPoint.X - item.Extents.MinPoint.X);
-                    exactHeight = Math.Abs(item.Extents.MaxPoint.Y - item.Extents.MinPoint.Y);
-                }
-
-                bool isPortrait = !string.IsNullOrWhiteSpace(item.Format) &&
-                                  item.Format.IndexOf(" v", StringComparison.OrdinalIgnoreCase) >= 0;
-
-                if (isPortrait)
-                {
-                    double tmp = exactWidth;
-                    exactWidth = exactHeight;
-                    exactHeight = tmp;
-                }
-
-                // 3) Для стандартных форматов (A0-A4) предпочитаем "без полей"
-                bool preferBorderless =
-                    item.FormatDefinition != null &&
-                    !item.FormatDefinition.Name.Contains("x", StringComparison.OrdinalIgnoreCase) &&
-                    !string.Equals(item.Format, "Нестандартный", StringComparison.OrdinalIgnoreCase);
-
-                // 4) Выбор media по размерам
-                string canonicalMedia = FindExactMediaFormat(psv, ps, exactWidth, exactHeight, preferBorderless, out bool exactFound);
-
-                if (string.IsNullOrEmpty(canonicalMedia))
-                {
-                    canonicalMedia = FindClosestMediaFormat(psv, ps, exactWidth, exactHeight, preferBorderless);
-                }
-
-                if (string.IsNullOrEmpty(canonicalMedia))
-                {
-                    var list = psv.GetCanonicalMediaNameList(ps);
-                    canonicalMedia = (list != null && list.Count > 0) ? list[0] : null;
-                }
-
-                // 5) Применяем media
-                psv.SetPlotConfigurationName(ps, PlotterName, canonicalMedia);
-                psv.RefreshLists(ps);
-
-                // 6) Окно печати: по рамочной полилинии внутри блока (fallback - extents)
-                if (TryBuildPlotWindowDcsFromFramePolyline(tr, ed, item.BlockId, out Extents2d windowDcs))
-                {
-                    psv.SetPlotWindowArea(ps, windowDcs);
-                    psv.SetPlotType(ps, Autodesk.AutoCAD.DatabaseServices.PlotType.Window);
-                }
-                else
-                {
-                    var min2d = new Point2d(item.Extents.MinPoint.X, item.Extents.MinPoint.Y);
-                    var max2d = new Point2d(min2d.X + exactWidth, min2d.Y + exactHeight);
-                    psv.SetPlotWindowArea(ps, new Extents2d(min2d, max2d));
-                    psv.SetPlotType(ps, Autodesk.AutoCAD.DatabaseServices.PlotType.Window);
-                }
-
-                // 7-9) Масштаб/позиционирование:
-                // Для стандартных форматов при точном media: строго 1:1, без центрирования, origin=(0,0).
-                // Иначе (кратные/нестандартные): ScaleToFit + Center.
-                bool isStandardExact =
-                    exactFound &&
-                    item.FormatDefinition != null &&
-                    !item.FormatDefinition.Name.Contains("x", StringComparison.OrdinalIgnoreCase) &&
-                    !string.Equals(item.Format, "Нестандартный", StringComparison.OrdinalIgnoreCase);
-
-                if (isStandardExact)
-                {
-                    psv.SetUseStandardScale(ps, true);
-                    psv.SetStdScaleType(ps, StdScaleType.StdScale1To1);
-                    psv.SetPlotCentered(ps, false);
-
-                    // Начало области печати (внутри полей). Обычно (0,0).
-                    // В PlotSettingsValidator есть SetPlotOrigin, но установка свойства тоже работает для PlotSettings.
-                    psv.SetPlotOrigin(ps, new Point2d(0, 0));
-
-                }
-                else
-                {
-                    psv.SetUseStandardScale(ps, true);
-                    psv.SetStdScaleType(ps, StdScaleType.ScaleToFit);
-                    psv.SetPlotCentered(ps, true);
-                }
-
-                // 10) Ротация фиксированно 0
+                psv.SetPlotPaperUnits(ps, PlotPaperUnit.Millimeters);
                 psv.SetPlotRotation(ps, PlotRotation.Degrees000);
+
+                if (!TryBuildPlotWindowDcsFromFramePolyline(tr, ed, item.BlockId, out Extents2d windowDcs))
+                    windowDcs = BuildWindowDcs(ed, new[] { item.Extents.MinPoint, item.Extents.MaxPoint,
+                        new Point3d(item.Extents.MinPoint.X, item.Extents.MaxPoint.Y, 0),
+                        new Point3d(item.Extents.MaxPoint.X, item.Extents.MinPoint.Y, 0) });
+                item.PlotWidthMm = (windowDcs.MaxPoint.X - windowDcs.MinPoint.X) / item.PlotScale;
+                item.PlotHeightMm = (windowDcs.MaxPoint.Y - windowDcs.MinPoint.Y) / item.PlotScale;
+
+                string media = mediaOptions.Where(m => m.Width + 0.01 >= item.PlotWidthMm && m.Height + 0.01 >= item.PlotHeightMm)
+                    .OrderBy(m => m.Width * m.Height).Select(m => m.Name).FirstOrDefault();
+                if (media == null)
+                    throw new InvalidOperationException($"Нет бумаги для рамки {item.PlotWidthMm:F2}×{item.PlotHeightMm:F2} мм.");
+                psv.SetCanonicalMediaName(ps, media);
+                psv.SetPlotWindowArea(ps, windowDcs);
+                psv.SetPlotType(ps, Autodesk.AutoCAD.DatabaseServices.PlotType.Window);
+                // All supported frames use zero-margin paper, their exact print scale,
+                // and a common lower-left origin. No fitting or centering of long sheets.
+                psv.SetUseStandardScale(ps, false);
+                psv.SetCustomPrintScale(ps, new CustomScale(1, item.PlotScale));
+                psv.SetPlotCentered(ps, false);
+                psv.SetPlotOrigin(ps, new Point2d(0, 0));
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n[Autocad Tools Error] Лист {item.SheetNumber}: {ex.Message}\n");
+                ed.WriteMessage($"\n[Autocad Tools] Лист {item.SheetNumber}: {ex.Message}\n");
                 throw new InvalidOperationException($"Не удалось подготовить настройки печати листа {item.SheetNumber}.", ex);
             }
         }
@@ -390,30 +242,32 @@ namespace AutocadTools.Services
             foreach (var pLocal in frame.PointsLocal)
                 ptsWcs.Add(pLocal.TransformBy(br.BlockTransform));
 
-            using (var view = ed.GetCurrentView())
-            {
-                Matrix3d matWcsToDcs =
-                    Matrix3d.PlaneToWorld(view.ViewDirection) *
-                    Matrix3d.Displacement(view.Target - Point3d.Origin) *
-                    Matrix3d.Rotation(-view.ViewTwist, view.ViewDirection, view.Target);
+            windowDcs = BuildWindowDcs(ed, ptsWcs);
+            return true;
+        }
 
-                matWcsToDcs = matWcsToDcs.Inverse();
+        private static Extents2d BuildWindowDcs(Editor ed, IEnumerable<Point3d> points)
+        {
+            using var view = ed.GetCurrentView();
+            var worldToDcs = (Matrix3d.PlaneToWorld(view.ViewDirection) *
+                Matrix3d.Displacement(view.Target - Point3d.Origin) *
+                Matrix3d.Rotation(-view.ViewTwist, view.ViewDirection, view.Target)).Inverse();
+            var transformed = points.Select(p => p.TransformBy(worldToDcs)).ToArray();
+            return new Extents2d(transformed.Min(p => p.X), transformed.Min(p => p.Y),
+                transformed.Max(p => p.X), transformed.Max(p => p.Y));
+        }
 
-                double minX = double.PositiveInfinity, minY = double.PositiveInfinity;
-                double maxX = double.NegativeInfinity, maxY = double.NegativeInfinity;
-
-                foreach (var p in ptsWcs)
-                {
-                    var d = p.TransformBy(matWcsToDcs);
-                    minX = Math.Min(minX, d.X);
-                    minY = Math.Min(minY, d.Y);
-                    maxX = Math.Max(maxX, d.X);
-                    maxY = Math.Max(maxY, d.Y);
-                }
-
-                windowDcs = new Extents2d(minX, minY, maxX, maxY);
-            }
-
+        /// <summary>Границы рамки в WCS, без атрибутов и геометрии штампа.</summary>
+        public static bool TryGetFrameExtents(Transaction tr, BlockReference block, out Extents3d extents)
+        {
+            extents = default;
+            // BlockTableRecord is the evaluated anonymous definition for a dynamic block.
+            var definition = (BlockTableRecord)tr.GetObject(block.BlockTableRecord, OpenMode.ForRead);
+            if (!TryFindFrameInBlockDefinition(tr, definition, out var frame)) return false;
+            var first = frame.PointsLocal[0].TransformBy(block.BlockTransform);
+            extents = new Extents3d(first, first);
+            foreach (var point in frame.PointsLocal)
+                extents.AddPoint(point.TransformBy(block.BlockTransform));
             return true;
         }
 
@@ -439,6 +293,8 @@ namespace AutocadTools.Services
 
             foreach (ObjectId id in btr)
             {
+                if (id.IsErased || !(tr.GetObject(id, OpenMode.ForRead) is Entity entity) || !entity.Visible)
+                    continue;
                 if (id.ObjectClass.IsDerivedFrom(RXObject.GetClass(typeof(Polyline))))
                 {
                     var pl = tr.GetObject(id, OpenMode.ForRead) as Polyline;
@@ -600,143 +456,29 @@ namespace AutocadTools.Services
         // Media selection
         // =========================
 
-        private static string FindExactMediaFormat(
-            PlotSettingsValidator psv,
-            PlotSettings ps,
-            double targetW,
-            double targetH,
-            bool preferBorderless,
-            out bool found)
+        private static List<(string Name, double Width, double Height)> ReadMediaOptions()
         {
-            found = false;
-
-            var mediaList = psv.GetCanonicalMediaNameList(ps);
-            if (mediaList == null || mediaList.Count == 0) return null;
-
-            const double tol = 0.5;
-
-            if (preferBorderless)
+            // Read driver capabilities once for the entire release, not once per frame.
+            var result = new List<(string Name, double Width, double Height)>();
+            var validator = PlotSettingsValidator.Current;
+            using var settings = new PlotSettings(true);
+            validator.RefreshLists(settings);
+            validator.SetPlotConfigurationName(settings, PlotterName, null);
+            validator.RefreshLists(settings);
+            validator.SetPlotPaperUnits(settings, PlotPaperUnit.Millimeters);
+            validator.SetPlotRotation(settings, PlotRotation.Degrees000);
+            foreach (string media in validator.GetCanonicalMediaNameList(settings))
             {
-                for (int i = 0; i < mediaList.Count; i++)
-                {
-                    string canonical = mediaList[i];
-                    string locale = null;
-                    try { locale = psv.GetLocaleMediaName(ps, canonical); } catch { }
-
-                    if (!TryExtractMmSize(locale, out double w, out double h) &&
-                        !TryExtractMmSize(canonical, out w, out h))
-                        continue;
-
-                    if (Math.Abs(w - targetW) >= tol || Math.Abs(h - targetH) >= tol)
-                        continue;
-
-                    bool isBorderless =
-                        (!string.IsNullOrWhiteSpace(locale) && locale.Contains("без полей", StringComparison.OrdinalIgnoreCase)) ||
-                        (!string.IsNullOrWhiteSpace(canonical) && canonical.Contains("full_bleed", StringComparison.OrdinalIgnoreCase));
-
-                    if (!isBorderless) continue;
-
-                    found = true;
-                    return canonical;
-                }
+                validator.SetCanonicalMediaName(settings, media);
+                var paper = settings.PlotPaperSize;
+                var margins = settings.PlotPaperMargins;
+                // Read actual driver dimensions. Canonical/localized names may be
+                // misleading, use inches, or disagree with the associated PMP.
+                if (Math.Abs(margins.MinPoint.X) > 0.001 || Math.Abs(margins.MinPoint.Y) > 0.001 ||
+                    Math.Abs(margins.MaxPoint.X) > 0.001 || Math.Abs(margins.MaxPoint.Y) > 0.001) continue;
+                result.Add((media, paper.X, paper.Y));
             }
-
-            for (int i = 0; i < mediaList.Count; i++)
-            {
-                string canonical = mediaList[i];
-                string locale = null;
-                try { locale = psv.GetLocaleMediaName(ps, canonical); } catch { }
-
-                if (!TryExtractMmSize(locale, out double w, out double h) &&
-                    !TryExtractMmSize(canonical, out w, out h))
-                    continue;
-
-                if (Math.Abs(w - targetW) < tol && Math.Abs(h - targetH) < tol)
-                {
-                    found = true;
-                    return canonical;
-                }
-            }
-
-            return null;
-        }
-
-        private static string FindClosestMediaFormat(
-            PlotSettingsValidator psv,
-            PlotSettings ps,
-            double targetW,
-            double targetH,
-            bool preferBorderless)
-        {
-            var mediaList = psv.GetCanonicalMediaNameList(ps);
-            if (mediaList == null || mediaList.Count == 0) return null;
-
-            string bestCanonical = null;
-            double bestScore = double.MaxValue;
-            bool bestIsBorderless = false;
-
-            for (int i = 0; i < mediaList.Count; i++)
-            {
-                string canonical = mediaList[i];
-                string locale = null;
-                try { locale = psv.GetLocaleMediaName(ps, canonical); } catch { }
-
-                if (!TryExtractMmSize(locale, out double w, out double h) &&
-                    !TryExtractMmSize(canonical, out w, out h))
-                    continue;
-
-                double score = Math.Abs(w - targetW) + Math.Abs(h - targetH);
-
-                bool isBorderless =
-                    (!string.IsNullOrWhiteSpace(locale) && locale.Contains("без полей", StringComparison.OrdinalIgnoreCase)) ||
-                    (!string.IsNullOrWhiteSpace(canonical) && canonical.Contains("full_bleed", StringComparison.OrdinalIgnoreCase));
-
-                bool isBetter = score < bestScore;
-
-                if (!isBetter && Math.Abs(score - bestScore) < 1e-9 && preferBorderless)
-                {
-                    if (isBorderless && !bestIsBorderless)
-                        isBetter = true;
-                }
-
-                if (isBetter)
-                {
-                    bestScore = score;
-                    bestCanonical = canonical;
-                    bestIsBorderless = isBorderless;
-                }
-            }
-
-            return bestCanonical;
-        }
-
-        private static bool TryExtractMmSize(string mediaName, out double w, out double h)
-        {
-            w = 0;
-            h = 0;
-
-            if (string.IsNullOrWhiteSpace(mediaName))
-                return false;
-
-            var regex = new Regex(@"\((\d+(?:[.,]\d+)?)\s*[xх×_\s]+\s*(\d+(?:[.,]\d+)?)\s*(?:мм|MM)\)",
-                RegexOptions.IgnoreCase);
-
-            var m = regex.Match(mediaName);
-            if (!m.Success) return false;
-
-            if (!TryParseInvariant(m.Groups[1].Value, out w)) return false;
-            if (!TryParseInvariant(m.Groups[2].Value, out h)) return false;
-
-            return true;
-        }
-
-        private static bool TryParseInvariant(string s, out double val)
-        {
-            val = 0;
-            if (string.IsNullOrWhiteSpace(s)) return false;
-
-            s = s.Trim().Replace(',', '.');
-            return double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out val);
+            return result;
         }
 
         // =========================

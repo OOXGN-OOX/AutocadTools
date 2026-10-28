@@ -16,7 +16,7 @@ try
     var expected = CommandCatalog.All.SelectMany(c => new[] { c.English, c.Russian }).ToArray();
     var registered = Directory.GetFiles(Path.Combine(root, "Commands"), "*.cs")
         .SelectMany(p => Regex.Matches(File.ReadAllText(p), "CommandMethod\\(\"([^\"]+)\"([^\\n]*)").Cast<Match>()).ToArray();
-    Check(expected.Length == 42 && expected.Distinct(StringComparer.OrdinalIgnoreCase).Count() == 42, "Unique bilingual catalog");
+    Check(expected.Length == 52 && expected.Distinct(StringComparer.OrdinalIgnoreCase).Count() == 52, "Unique bilingual catalog");
     Check(registered.Select(m => m.Groups[1].Value).Order().SequenceEqual(expected.Order()), "Exact registrations; no obsolete names");
     foreach (var definition in CommandCatalog.All)
     {

@@ -1,10 +1,7 @@
-// SPDX-License-Identifier: LicenseRef-AutocadTools-Proprietary-NC-Attribution
-// See LICENSE in the repository root.
-// ============================================================================
+// SPDX-License-Identifier: AGPL-3.0-only
 // OOXGN - Copyright (c) 2026. All rights reserved.
-// Author: OOXGN | Project: AutocadTools
-// ============================================================================
-
+// Author: OOXGN | Project: BotPlusAutocadTool
+// Derived from Davud77/BotPlusAutocadTool (51e3e82). See THIRD-PARTY-NOTICES.md.
 using System.Windows.Input;
 using AutocadTools.Models;
 
@@ -52,6 +49,7 @@ namespace AutocadTools.ViewModels
             Options.DeleteShortSegments = val;
             Options.SetGrayColor = val;
             Options.CreateBlock = val;
+            Options.PickBasePoint = val;
 
             var temp = Options;
             Options = null;

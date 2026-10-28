@@ -41,11 +41,13 @@ $taskRunnerProject = Join-Path $taskRoot 'tools\CommandPreview\CommandPreview.cs
 $taskGenerated = [Text.StringBuilder]::new("using Autodesk.AutoCAD.Runtime;`npublic sealed partial class CommandPreview {`n")
 $taskIndex = 0
 foreach ($taskCommandFile in (Get-ChildItem -LiteralPath (Join-Path $taskRoot 'Commands') -Filter '*.cs' | Sort-Object Name)) {
-    $taskMethods = [regex]::Matches([IO.File]::ReadAllText($taskCommandFile.FullName), '\[CommandMethod\("([^"\r\n]+)"[^\r\n]*\]')
-    if (!$taskMethods.Count) { continue }
-    foreach ($taskMethod in $taskMethods) { $null = $taskGenerated.AppendLine($taskMethod.Value) }
-    $null = $taskGenerated.AppendLine(('public void Run{0}() => Invoke("{1}");' -f $taskIndex, $taskMethods[0].Groups[1].Value))
-    $taskIndex++
+    $taskGroups = [regex]::Matches([IO.File]::ReadAllText($taskCommandFile.FullName), '(?m)(?:^[ \t]*\[CommandMethod\([^\r\n]+\)\][ \t]*\r?\n)+')
+    foreach ($taskGroup in $taskGroups) {
+        $taskMethods = [regex]::Matches($taskGroup.Value, '\[CommandMethod\("([^"\r\n]+)"[^\r\n]*\]')
+        foreach ($taskMethod in $taskMethods) { $null = $taskGenerated.AppendLine($taskMethod.Value) }
+        $null = $taskGenerated.AppendLine(('public void Run{0}() => Invoke("{1}");' -f $taskIndex, $taskMethods[0].Groups[1].Value))
+        $taskIndex++
+    }
 }
 $null = $taskGenerated.AppendLine('}')
 $taskGeneratedPath = Join-Path $taskRoot 'tools\CommandPreview\obj\CommandMethods.g.cs'

@@ -1,12 +1,7 @@
-// SPDX-License-Identifier: LicenseRef-AutocadTools-Proprietary-NC-Attribution
-// See LICENSE in the repository root.
-// ============================================================================
+// SPDX-License-Identifier: AGPL-3.0-only
 // OOXGN - Copyright (c) 2026. All rights reserved.
-// Author: OOXGN | Project: AutocadTools
-// ============================================================================
-
-// File: Services/BatchPlotService.cs
-
+// Author: OOXGN | Project: BotPlusAutocadTool
+// Derived from Davud77/BotPlusAutocadTool (51e3e82). See THIRD-PARTY-NOTICES.md.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -58,6 +53,8 @@ namespace AutocadTools.Services
 
         public string BlockName { get; set; } = DefaultBlockName;
         public string LayerName { get; set; } = DefaultLayerName;
+        public int PlotScale { get; set; } = SettingsService.Settings.PlotScale;
+        public PlotSearchOrder SearchOrder { get; set; } = PlotSearchOrder.TopToBottom;
 
         #endregion
 
@@ -80,6 +77,7 @@ namespace AutocadTools.Services
             new PaperFormatDefinition("A2", 594, 420),
             new PaperFormatDefinition("A3", 420, 297),
             new PaperFormatDefinition("A4", 297, 210),
+            new PaperFormatDefinition("A5", 210, 148),
 
             // Кратные A0
             new PaperFormatDefinition("A0x2", 1682, 1189),
@@ -122,20 +120,20 @@ namespace AutocadTools.Services
         {
             var list = new List<string>();
 
-            // Стандартные форматы (A0-A4) в двух ориентациях
-            var standardFormats = new[] { "A0", "A1", "A2", "A3", "A4" };
+            // Основные форматы и дополнительный A5 в двух ориентациях
+            var standardFormats = new[] { "A0", "A1", "A2", "A3", "A4", "A5" };
             foreach (var fmt in standardFormats)
             {
                 list.Add(fmt);        // Альбомная
                 list.Add($"{fmt} v"); // Книжная
             }
 
-            // Кратные форматы (без " v", т.к. всегда альбомные)
+            // Кратные форматы в двух ориентациях
             var multipleFormats = _definedFormats
                 .Where(f => f.Name.Contains("x"))
                 .Select(f => f.Name)
                 .OrderBy(n => n);
-            list.AddRange(multipleFormats);
+            foreach (var format in multipleFormats) { list.Add(format); list.Add(format + " v"); }
 
             // Нестандартный
             list.Add("Нестандартный");
@@ -148,6 +146,7 @@ namespace AutocadTools.Services
         /// </summary>
         public PaperFormatDefinition GetFormatDefinition(string formatName)
         {
+            if (string.IsNullOrWhiteSpace(formatName)) return null;
             string baseName = formatName.Replace(" v", "").Trim();
 
             return _definedFormats.FirstOrDefault(f =>
@@ -179,6 +178,7 @@ namespace AutocadTools.Services
 
                     int scanned = 0;
                     int matched = 0;
+                    var names = new Dictionary<ObjectId, string>();
 
                     foreach (ObjectId id in ms)
                     {
@@ -190,22 +190,24 @@ namespace AutocadTools.Services
                         var blk = (BlockReference)tr.GetObject(id, OpenMode.ForRead);
 
                         // Фильтр: по имени блока и слою
-                        string effectiveName = GetEffectiveName(blk, tr);
-                        if (!effectiveName.Equals(BlockName, StringComparison.OrdinalIgnoreCase) ||
-                            !blk.Layer.Equals(LayerName, StringComparison.OrdinalIgnoreCase))
-                            continue;
+                        if (!blk.Layer.Equals(LayerName, StringComparison.OrdinalIgnoreCase)) continue;
+                        var definitionId = blk.IsDynamicBlock ? blk.DynamicBlockTableRecord : blk.BlockTableRecord;
+                        if (!names.TryGetValue(definitionId, out string effectiveName))
+                            names[definitionId] = effectiveName = GetEffectiveName(blk, tr);
+                        if (!effectiveName.Equals(BlockName, StringComparison.OrdinalIgnoreCase)) continue;
 
                         matched++;
 
-                        // Получаем границы блока
+                        // Размер листа задаёт рамка, а не атрибуты меняющегося штампа.
                         Extents3d ext;
                         try
                         {
-                            ext = blk.GeometricExtents;
+                            if (!BlockExportStage1Service.TryGetFrameExtents(tr, blk, out ext))
+                                ext = blk.GeometricExtents;
                         }
                         catch (SystemException ex)
                         {
-                            doc.Editor.WriteMessage($"\n[Autocad Tools Warning] Блок {id.Handle} имеет невалидные границы: {ex.Message}\n");
+                            doc.Editor.WriteMessage($"\n[Autocad Tools] Блок {id.Handle} имеет невалидные границы: {ex.Message}\n");
                             continue;
                         }
 
@@ -213,17 +215,17 @@ namespace AutocadTools.Services
                         double blockWidth = Math.Abs(Math.Round(ext.MaxPoint.X - ext.MinPoint.X, 0));
                         double blockHeight = Math.Abs(Math.Round(ext.MaxPoint.Y - ext.MinPoint.Y, 0));
 
-                        doc.Editor.WriteMessage($"\n[DEBUG] Блок {id.Handle}: размеры {blockWidth:F0}×{blockHeight:F0} мм\n");
+                        System.Diagnostics.Debug.WriteLine($"\n[DEBUG] Блок {id.Handle}: размеры {blockWidth:F0}×{blockHeight:F0} мм\n");
 
-                        string detectedFormat = IdentifyFormatBySize(blockWidth, blockHeight, out PaperFormatDefinition matchedDef);
+                        string detectedFormat = IdentifyFormatBySize(blockWidth / PlotScale, blockHeight / PlotScale, out PaperFormatDefinition matchedDef);
 
                         if (matchedDef != null)
                         {
-                            doc.Editor.WriteMessage($"[DEBUG] → Определён формат: {detectedFormat} (ГОСТ: {matchedDef.Width}×{matchedDef.Height})\n");
+                            System.Diagnostics.Debug.WriteLine($"[DEBUG] → Определён формат: {detectedFormat} (ГОСТ: {matchedDef.Width}×{matchedDef.Height})\n");
                         }
                         else
                         {
-                            doc.Editor.WriteMessage($"[DEBUG] → Нестандартный формат!\n");
+                            System.Diagnostics.Debug.WriteLine($"[DEBUG] → Нестандартный формат!\n");
                         }
 
                         // Читаем атрибуты
@@ -241,7 +243,8 @@ namespace AutocadTools.Services
                             Format = detectedFormat,
                             IsSelected = true,
                             Status = "Готов",
-                            FormatDefinition = matchedDef
+                            FormatDefinition = matchedDef,
+                            PlotScale = PlotScale
                         };
 
                         items.Add(item);
@@ -255,13 +258,16 @@ namespace AutocadTools.Services
                 {
                     tr.Abort();
                     LogError($"Error scanning blocks: {ex.Message}");
-                    doc.Editor.WriteMessage($"\n[Autocad Tools Error] Ошибка поиска блоков: {ex.Message}\n");
+                    doc.Editor.WriteMessage($"\n[Autocad Tools] Ошибка поиска блоков: {ex.Message}\n");
                 }
             }
 
-            // НОВОЕ: сортировка по расположению — сверху вниз, слева направо
-            return SortLeftRightTopBottom(items, RowToleranceMm);
+            return SortFrames(items);
         }
+
+        public List<BatchPlotItem> SortFrames(IEnumerable<BatchPlotItem> items) =>
+            PlotFrameOrdering.Sort(items, i => i.Extents.MinPoint.X, i => i.Extents.MinPoint.Y,
+                SearchOrder, RowToleranceMm * PlotScale);
 
         /// <summary>
         /// Обновление атрибутов блоков в чертеже
@@ -328,7 +334,7 @@ namespace AutocadTools.Services
                     LogError($"Update attributes failed: {ex.Message}");
                     MessageBox.Show(
                         $"Ошибка обновления атрибутов:\n\n{ex.Message}",
-                        "Autocad Tools - Ошибка",
+                        "Autocad Tools — ошибка",
                         MessageBoxButton.OK,
                         MessageBoxImage.Error);
                 }
@@ -361,18 +367,12 @@ namespace AutocadTools.Services
                 {
                     matchedDefinition = fmt;
 
-                    if (fmt.Name.Contains("x"))
-                        return fmt.Name;
-
                     bool isPortrait = blockHeight > blockWidth;
                     return isPortrait ? $"{fmt.Name} v" : fmt.Name;
                 }
                 else if (matchesRotated)
                 {
                     matchedDefinition = fmt;
-
-                    if (fmt.Name.Contains("x"))
-                        return fmt.Name;
 
                     return $"{fmt.Name} v";
                 }
@@ -395,7 +395,7 @@ namespace AutocadTools.Services
                 var att = tr.GetObject(id, OpenMode.ForRead) as AttributeReference;
                 if (att == null) continue;
 
-                string tag = att.Tag.ToUpper();
+                string tag = att.Tag;
                 if (!res.ContainsKey(tag))
                     res.Add(tag, att.TextString);
             }
@@ -418,7 +418,7 @@ namespace AutocadTools.Services
 
         private void LogError(string message)
         {
-            System.Diagnostics.Debug.WriteLine($"[Autocad Tools Error] {message}");
+            System.Diagnostics.Debug.WriteLine($"[Autocad Tools] {message}");
             var doc = AcadApp.DocumentManager.MdiActiveDocument;
             doc?.Editor.WriteMessage($"\n[Autocad Tools Log] {message}\n");
         }
@@ -459,53 +459,6 @@ namespace AutocadTools.Services
 
         #endregion
 
-        #region Сортировка по расположению
 
-        /// <summary>
-        /// Сортировка форматок "сверху вниз, слева направо".
-        /// Опорная точка — левый нижний угол рамки (Extents.MinPoint).
-        /// </summary>
-        private static List<BatchPlotItem> SortLeftRightTopBottom(
-            List<BatchPlotItem> items,
-            double rowTolerance)
-        {
-            if (items == null || items.Count <= 1)
-                return items ?? new List<BatchPlotItem>();
-
-            // Грубая сортировка: сверху вниз (Y desc), слева направо (X asc)
-            var sorted = items
-                .OrderByDescending(i => i.Extents.MinPoint.Y)
-                .ThenBy(i => i.Extents.MinPoint.X)
-                .ToList();
-
-            var rows = new List<List<BatchPlotItem>>();
-
-            foreach (var it in sorted)
-            {
-                double y = it.Extents.MinPoint.Y;
-
-                if (rows.Count == 0)
-                {
-                    rows.Add(new List<BatchPlotItem> { it });
-                    continue;
-                }
-
-                double baseY = rows[^1][0].Extents.MinPoint.Y;
-
-                // если по Y в пределах допуска — та же строка, иначе новая строка
-                if (Math.Abs(y - baseY) <= rowTolerance)
-                    rows[^1].Add(it);
-                else
-                    rows.Add(new List<BatchPlotItem> { it });
-            }
-
-            // Внутри строки — слева направо
-            foreach (var row in rows)
-                row.Sort((a, b) => a.Extents.MinPoint.X.CompareTo(b.Extents.MinPoint.X));
-
-            return rows.SelectMany(r => r).ToList();
-        }
-
-        #endregion
     }
 }
